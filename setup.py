@@ -1,0 +1,22 @@
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
+
+config = {
+    'description': 'Django app for project management',
+    'author': 'sueastside',
+    'url': 'https://github.com/sueastside/django-project',
+    'download_url': 'https://github.com/sueastside/django-project',
+    'author_email': 'No, thanks',
+    'version': '0.1',
+    'test_suite': 'tests.suite',
+    'install_requires': ['django-autoslug', 'django-reversion', 'south', 'pytz', 'django-notifications-hq', 'django-follow'],
+    'test_requires': [],
+    'packages': ['django_project'],
+    'scripts': [],
+    'name': 'django-project',
+}
+
+setup(**config)
+

@@ -1,3 +1,5 @@
+*.sqlite3
+*~
 *.py[cod]
 
 # C extensions
@@ -6,6 +8,7 @@
 # Packages
 *.egg
 *.egg-info
+_build
 dist
 build
 eggs
