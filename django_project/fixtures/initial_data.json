@@ -1,0 +1,251 @@
+[
+{
+    "pk": 1, 
+    "model": "django_project.project", 
+    "fields": {
+        "created_at": "2014-01-17T09:34:18.055Z", 
+        "author": 1, 
+        "modified_at": "2014-01-17T09:34:18.055Z", 
+        "name": "Peragro Tempus", 
+        "slug": "peragro-tempus"
+    }
+},
+{
+    "pk": 1, 
+    "model": "django_project.component", 
+    "fields": {
+        "project": 1, 
+        "description": "", 
+        "name": "Scene 1", 
+        "slug": "scene-1"
+    }
+},
+{
+    "pk": 1, 
+    "model": "django_project.membership", 
+    "fields": {
+        "member": 1, 
+        "project": 1, 
+        "joined_at": "2014-01-17T09:49:46.298Z"
+    }
+},
+{
+    "pk": 1, 
+    "model": "django_project.milestone", 
+    "fields": {
+        "date_completed": null, 
+        "description": "Milestone 1 is the initial milestone.", 
+        "author": 1, 
+        "created_at": "2014-01-17T09:46:18.825Z", 
+        "project": 1, 
+        "deadline": "2014-01-27", 
+        "slug": "milestone-1", 
+        "name": "Milestone 1"
+    }
+},
+{
+    "pk": 2, 
+    "model": "django_project.milestone", 
+    "fields": {
+        "date_completed": null, 
+        "description": "Milestone 2 is the next milestone.", 
+        "author": 1, 
+        "created_at": "2014-01-17T09:46:52.833Z", 
+        "project": 1, 
+        "deadline": "2014-01-31", 
+        "slug": "milestone-2", 
+        "name": "Milestone 2"
+    }
+},
+{
+    "pk": 1, 
+    "model": "django_project.priority", 
+    "fields": {
+        "project": 1, 
+        "slug": "minor", 
+        "order": 0, 
+        "name": "minor", 
+        "description": ""
+    }
+},
+{
+    "pk": 2, 
+    "model": "django_project.priority", 
+    "fields": {
+        "project": 1, 
+        "slug": "major", 
+        "order": 1, 
+        "name": "major", 
+        "description": ""
+    }
+},
+{
+    "pk": 1, 
+    "model": "django_project.status", 
+    "fields": {
+        "name": "new", 
+        "is_resolved": false, 
+        "slug": "new", 
+        "project": 1, 
+        "is_initial": true, 
+        "order": 0, 
+        "description": ""
+    }
+},
+{
+    "pk": 2, 
+    "model": "django_project.status", 
+    "fields": {
+        "name": "in progress", 
+        "is_resolved": false, 
+        "slug": "in-progress", 
+        "project": 1, 
+        "is_initial": false, 
+        "order": 1, 
+        "description": ""
+    }
+},
+{
+    "pk": 3, 
+    "model": "django_project.status", 
+    "fields": {
+        "name": "done", 
+        "is_resolved": true, 
+        "slug": "done", 
+        "project": 1, 
+        "is_initial": false, 
+        "order": 2, 
+        "description": ""
+    }
+},
+{
+    "pk": 1, 
+    "model": "django_project.transition", 
+    "fields": {
+        "source": 1, 
+        "destination": 2
+    }
+},
+{
+    "pk": 2, 
+    "model": "django_project.transition", 
+    "fields": {
+        "source": 2, 
+        "destination": 2
+    }
+},
+{
+    "pk": 3, 
+    "model": "django_project.transition", 
+    "fields": {
+        "source": 2, 
+        "destination": 3
+    }
+},
+{
+    "pk": 1, 
+    "model": "django_project.tasktype", 
+    "fields": {
+        "project": 1, 
+        "order": 0, 
+        "name": "Modeling", 
+        "description": ""
+    }
+},
+{
+    "pk": 2, 
+    "model": "django_project.tasktype", 
+    "fields": {
+        "project": 1, 
+        "order": 2, 
+        "name": "Animation", 
+        "description": ""
+    }
+},
+{
+    "pk": 3, 
+    "model": "django_project.tasktype", 
+    "fields": {
+        "project": 1, 
+        "order": 3, 
+        "name": "Lighting", 
+        "description": ""
+    }
+},
+{
+    "pk": 4, 
+    "model": "django_project.tasktype", 
+    "fields": {
+        "project": 1, 
+        "order": 1, 
+        "name": "Layout", 
+        "description": ""
+    }
+},
+{
+    "pk": 1, 
+    "model": "django_project.task", 
+    "fields": {
+        "status": 1, 
+        "priority": 1, 
+        "description": "Task 1 description.", 
+        "author": 1, 
+        "edited_at": "2014-01-17T09:47:54.997Z", 
+        "created_at": "2014-01-17T09:47:54.997Z", 
+        "component": 1, 
+        "author_ip": "0.0.0.0", 
+        "summary": "Task 1", 
+        "project": 1, 
+        "editor_ip": "0.0.0.0", 
+        "deadline": null, 
+        "editor": null, 
+        "milestone": null, 
+        "owner": null, 
+        "type": 1
+    }
+},
+{
+    "pk": 2, 
+    "model": "django_project.task", 
+    "fields": {
+        "status": 1, 
+        "priority": 2, 
+        "description": "Task 2 description.", 
+        "author": 1, 
+        "edited_at": "2014-01-17T09:48:42.909Z", 
+        "created_at": "2014-01-17T09:48:42.909Z", 
+        "component": 1, 
+        "author_ip": "0.0.0.0", 
+        "summary": "Task 2", 
+        "project": 1, 
+        "editor_ip": "", 
+        "deadline": null, 
+        "editor": null, 
+        "milestone": 1, 
+        "owner": null, 
+        "type": 1
+    }
+},
+{
+    "pk": 3, 
+    "model": "django_project.task", 
+    "fields": {
+        "status": 2, 
+        "priority": 1, 
+        "description": "Task 3 description", 
+        "author": 1, 
+        "edited_at": "2014-01-17T09:49:23.992Z", 
+        "created_at": "2014-01-17T09:49:23.992Z", 
+        "component": 1, 
+        "author_ip": "0.0.0.0", 
+        "summary": "Task 3", 
+        "project": 1, 
+        "editor_ip": "", 
+        "deadline": null, 
+        "editor": null, 
+        "milestone": 1, 
+        "owner": 1, 
+        "type": 1
+    }
+}
+]

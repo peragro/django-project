@@ -9,10 +9,10 @@ from django.utils.translation import ugettext as _
 from autoslug import AutoSlugField
 
 
-from django_project.mixins import TaskMixin
+from django_project.mixins import ProjectMixin, TaskMixin
 
 
-class Project(models.Model):
+class Project(ProjectMixin, models.Model):
     """
     """
     name = models.CharField(_('name'), max_length=64)
@@ -240,4 +240,5 @@ utils.register(Project)
 utils.register(Milestone)
 utils.register(Task)
 
-
+# IMPORTANT LINE, really leave it there!
+from django_project import handlers

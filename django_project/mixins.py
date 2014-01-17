@@ -3,8 +3,17 @@ from django.db import models
 from django.db import transaction
 import reversion
 
+from follow.models import Follow
+
 from django_project.signals import workflow_task_transition, workflow_task_resolved, workflow_task_new
 
+
+class ProjectMixin(object):
+    def save(self, *args, **kwargs):
+        ret = super(ProjectMixin, self).save(*args, **kwargs)
+        #Author of the project is always following!
+        Follow.objects.get_or_create(self.author, self)
+        return ret
 
 
 class TaskMixin(object):
@@ -39,10 +48,11 @@ class TaskMixin(object):
             #print('TaskMixin::save 1', old_state, new_state)
             transition = Transition.objects.get(source=old_state, destination=new_state)
             #print('TaskMixin::save 2', transition)
-            workflow_task_transition.send(sender=Task, instance=self, transition=transition, old_state=old_state, new_state=new_state)
             
             if new_state.is_resolved:
                 workflow_task_resolved.send(sender=Task, instance=self, transition=transition, old_state=old_state, new_state=new_state)
+            else:
+                workflow_task_transition.send(sender=Task, instance=self, transition=transition, old_state=old_state, new_state=new_state)
         else:
             workflow_task_new.send(sender=Task, instance=self)
             

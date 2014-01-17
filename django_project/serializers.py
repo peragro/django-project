@@ -6,13 +6,22 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse
 
 from notifications.models import Notification
+from follow.models import Follow
 
-from django_project.models import Project, Task
+from django_project.models import Project, Task, Milestone
 
-class UserSerializer(serializers.HyperlinkedModelSerializer):
+class FollowSerializerMixin(object):
+    def to_native(self, obj):
+        ret = super(FollowSerializerMixin, self).to_native(obj)
+        if obj and 'request' in self.context:
+            ret['is_following'] = Follow.objects.is_following(self.context['request'].user, obj)
+        return ret
+
+class UserSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializer):
     class Meta:
         model = User
         fields = ('url', 'username', 'email', 'groups')
+        
         
 class GroupSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
@@ -20,13 +29,18 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('url', 'name')
 
 
-class ProjectSerializer(serializers.HyperlinkedModelSerializer):
+class MilestoneSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Milestone
+        fields = ('name',)
+
+
+class ProjectSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Project
         fields = ('name',)
 
-
-class TaskSerializer(serializers.HyperlinkedModelSerializer):
+class TaskSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializer):
     status = serializers.CharField()
     priority = serializers.CharField()
     type = serializers.CharField()
