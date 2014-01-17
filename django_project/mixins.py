@@ -47,7 +47,7 @@ class TaskMixin(object):
             new_state = self.status
             #print('TaskMixin::save 1', old_state, new_state)
             transition = Transition.objects.get(source=old_state, destination=new_state)
-            #print('TaskMixin::save 2', transition)
+            print('TaskMixin::save 2', transition)
             
             if new_state.is_resolved:
                 workflow_task_resolved.send(sender=Task, instance=self, transition=transition, old_state=old_state, new_state=new_state)

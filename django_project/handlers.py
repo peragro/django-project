@@ -34,7 +34,9 @@ signals.unfollow.connect(unfollow_handler, dispatch_uid='django_project.handlers
 def workflow_task_handler_creator(verb):
     """
     """
-    def handler(instance, **kwargs):
+    print('REG workflow_task_handler_creator::handler', verb)
+    def handler(instance, *args, **kwargs):
+        print('workflow_task_handler_creator::handler', verb)
         for follow in Follow.objects.get_follows(instance.project):
             notify.send(instance.author,
                         recipient=follow.user, 
@@ -43,8 +45,14 @@ def workflow_task_handler_creator(verb):
                         action_object=instance, 
                         description='', 
                         target=instance.project)
+    if not hasattr(workflow_task_handler_creator, 'instances'):
+        workflow_task_handler_creator.instances = []
+    workflow_task_handler_creator.instances.append(handler)
     return handler
 
+def handler(instance, transition, old_state, new_state, **kwargs):
+    print('workflow_task_handler_creator::handler22')
+        
 # connect the signal
 signals.workflow_task_new.connect(workflow_task_handler_creator('created'), dispatch_uid='django_project.handlers.workflow_task_new')
 signals.workflow_task_transition.connect(workflow_task_handler_creator('updated'), dispatch_uid='django_project.handlers.workflow_task_transition')
