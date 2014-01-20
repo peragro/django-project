@@ -53,6 +53,7 @@ class ComponentSerializer(serializers.HyperlinkedModelSerializer):
     
 
 class TaskSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializer):
+    id = serializers.IntegerField()
     status = serializers.CharField()
     priority = serializers.CharField()
     type = serializers.CharField()
