@@ -4,11 +4,13 @@ import urllib
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
 from rest_framework.reverse import reverse
+from rest_framework.relations import HyperlinkedRelatedField
 
 from notifications.models import Notification
 from follow.models import Follow
 
-from django_project.models import Project, Task, Milestone
+from django_project.models import Project, Task, Milestone, Component
+
 
 class FollowSerializerMixin(object):
     def to_native(self, obj):
@@ -17,34 +19,44 @@ class FollowSerializerMixin(object):
             ret['is_following'] = Follow.objects.is_following(self.context['request'].user, obj)
         return ret
 
-class UserSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = User
-        fields = ('url', 'username', 'email', 'groups')
-        
-        
+
 class GroupSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Group
-        fields = ('url', 'name')
+        fields = ('id', 'url', 'name')
 
+
+class UserSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializer):
+    groups = GroupSerializer(many=True)
+    class Meta:
+        model = User
+        fields = ('id', 'url', 'username', 'email', 'groups')
+        
+        
 
 class MilestoneSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Milestone
-        fields = ('name',)
+        fields = ('id', 'name',)
 
 
 class ProjectSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Project
-        fields = ('name',)
+        fields = ('id', 'url', 'name',)
+
+
+class ComponentSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Component
+        fields = ('id', 'url', 'name',)
+    
 
 class TaskSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializer):
     status = serializers.CharField()
     priority = serializers.CharField()
     type = serializers.CharField()
-    component = serializers.CharField()
+    component = ComponentSerializer()
     
     class Meta:
         model = Task
@@ -65,22 +77,23 @@ class SerializerMethodFieldArgs(serializers.Field):
 
 
 class NotificationSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
     level = serializers.CharField()
     
-    recipient = serializers.CharField()
-    recipient_url = SerializerMethodFieldArgs('get_related_object_url', 'recipient')
+    recipient_descr = serializers.CharField(source='recipient', read_only=True)
+    recipient = SerializerMethodFieldArgs('get_related_object_url', 'recipient')
     
-    actor = serializers.CharField()
-    actor_url = SerializerMethodFieldArgs('get_related_object_url', 'actor')
+    actor_descr = serializers.CharField(source='actor', read_only=True)
+    actor = SerializerMethodFieldArgs('get_related_object_url', 'actor')
     
     verb = serializers.CharField()
     description = serializers.CharField()
     
-    target = serializers.CharField()
-    target_url = SerializerMethodFieldArgs('get_related_object_url', 'target')
+    target_descr = serializers.CharField(source='target', read_only=True)
+    target = SerializerMethodFieldArgs('get_related_object_url', 'target')
     
-    action_object = serializers.CharField()
-    action_object_url = SerializerMethodFieldArgs('get_related_object_url', 'action_object')
+    action_object_descr = serializers.CharField(source='action_object', read_only=True)
+    action_object = SerializerMethodFieldArgs('get_related_object_url', 'action_object')
     
     timesince = serializers.CharField()
     

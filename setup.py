@@ -11,7 +11,7 @@ config = {
     'author_email': 'No, thanks',
     'version': '0.1',
     'test_suite': 'tests.suite',
-    'install_requires': ['django-autoslug', 'django-reversion', 'south', 'pytz', 'django-notifications-hq', 'django-follow'],
+    'install_requires': ['django-autoslug', 'django-reversion', 'south', 'pytz', 'django-notifications-hq', 'django-follow', 'django-filter', 'drf-nested-routers'],
     'test_requires': [],
     'packages': ['django_project'],
     'scripts': [],
