@@ -164,6 +164,8 @@ class CurrentUserDetail(APIView):
     """
     Retrieve the current User
     """
+    permission_classes = (IsAuthenticated,)
+    
     def get(self, request, format=None):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
