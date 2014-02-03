@@ -2,6 +2,7 @@ import os
 import urllib
 
 from django.contrib.auth.models import User, Group
+from django.contrib.comments.models import Comment
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 from rest_framework.relations import HyperlinkedRelatedField
@@ -17,6 +18,15 @@ class FollowSerializerMixin(object):
         ret = super(FollowSerializerMixin, self).to_native(obj)
         if obj and 'request' in self.context:
             ret['is_following'] = Follow.objects.is_following(self.context['request'].user, obj)
+        return ret
+
+
+class FollowSerializer(serializers.Serializer):
+    def to_native(self, obj):
+        def reverse_url(result):
+            return reverse('%s-detail'%result.target._meta.object_name.lower(), args=[result.target.id])
+            
+        ret = {'url': reverse_url(obj), 'type': obj.target._meta.object_name, '__str__': str(obj.target) }
         return ret
 
 
@@ -75,9 +85,28 @@ class SerializerMethodFieldArgs(serializers.Field):
     def field_to_native(self, obj, field_name):
         value = getattr(self.parent, self.method_name)(obj, *self.args)
         return self.to_native(value)
+        
 
+class GenericForeignKeyMixin(object):
+    def get_related_object_url(self, obj, field):
+        try:
+            obj = getattr(obj, field)
+            default_view_name = '%(model_name)s-detail'
+            
+            format_kwargs = {
+                'app_label': obj._meta.app_label,
+                'model_name': obj._meta.object_name.lower()
+            }
+            view_name = default_view_name % format_kwargs
+            print('get_related_object_url::view_name', view_name)
+            s = serializers.HyperlinkedIdentityField(source=obj, view_name=view_name)
+            s.initialize(self, None)
+            return s.field_to_native(obj, None)
+        except Exception as e:
+            print(e)
+            return ''
 
-class NotificationSerializer(serializers.Serializer):
+class NotificationSerializer(GenericForeignKeyMixin, serializers.Serializer):
     id = serializers.IntegerField()
     level = serializers.CharField()
     
@@ -101,21 +130,28 @@ class NotificationSerializer(serializers.Serializer):
     __str__ = serializers.CharField()
 
 
-    def get_related_object_url(self, obj, field):
-        try:
-            obj = getattr(obj, field)
-            default_view_name = '%(model_name)s-detail'
-            
-            format_kwargs = {
-                'app_label': obj._meta.app_label,
-                'model_name': obj._meta.object_name.lower()
-            }
-            view_name = default_view_name % format_kwargs
-            print('get_related_object_url::view_name', view_name)
-            s = serializers.HyperlinkedIdentityField(source=obj, view_name=view_name)
-            s.initialize(self, None)
-            return s.field_to_native(obj, None)
-        except Exception as e:
-            print(e)
-            return ''
 
+
+
+class VersionSerializer(serializers.Serializer):
+    def to_native(self, version):
+        ver = {}
+        ver['revision'] = {}
+        ver['revision']['comment'] = version.revision.comment
+        ver['revision']['editor'] = version.revision.user.username
+        ver['revision']['revision_id'] = version.revision_id
+        ver['revision']['date_created'] = version.revision.date_created
+        ver['object'] = version.field_dict
+        return ver
+        
+        
+class CommentSerializer(GenericForeignKeyMixin, serializers.Serializer):
+    content_object_descr = serializers.CharField(source='content_object', read_only=True)
+    content_object = SerializerMethodFieldArgs('get_related_object_url', 'content_object')  
+    
+    user_descr = serializers.CharField(source='user', read_only=True)
+    user = SerializerMethodFieldArgs('get_related_object_url', 'user')
+    
+    comment = serializers.CharField()
+    submit_date = serializers.CharField()
+        

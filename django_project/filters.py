@@ -1,20 +1,24 @@
 import django_filters
+from django.contrib.comments.models import Comment
+
 from django_project import models
 
 class TaskFilter(django_filters.FilterSet):
-
-    owner = django_filters.CharFilter(name="owner__username")
-    status = django_filters.CharFilter(name="status__name")
+    #http://stackoverflow.com/questions/10873249/django-filter-lookup-type-documentation
+    owner = django_filters.CharFilter(name="owner__username", lookup_type="icontains")
+    author = django_filters.CharFilter(name="author__username", lookup_type="icontains")
     class Meta:
         model = models.Task
-        fields = ['owner', 'status']    
+        fields = ['owner', 'author', 'status', 'component', 'milestone']    
         order_by = (
                         ('status__order', 'Status'),
                         ('priority__order', 'Priority'),
                         ('-status__order', 'Status'),
                         ('-priority__order', 'Priority'),
+                        ('deadline', 'Dead line'),
+                        ('-deadline', 'Dead line'),
                     )
-
+            
 class ProjectFilter(django_filters.FilterSet):
 
     class Meta:
@@ -28,3 +32,7 @@ class ProjectFilter(django_filters.FilterSet):
                         ('modified_at', 'Modified at'),
                         ('-modified_at', 'Modified at'),
                     )
+
+class CommentFilter(django_filters.FilterSet):
+    class Meta:
+        model = Comment
