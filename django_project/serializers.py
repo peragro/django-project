@@ -2,7 +2,6 @@ import os
 import urllib
 
 from django.contrib.auth.models import User, Group
-from django.contrib.comments.models import Comment
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 from rest_framework.relations import HyperlinkedRelatedField
@@ -10,7 +9,7 @@ from rest_framework.relations import HyperlinkedRelatedField
 from notifications.models import Notification
 from follow.models import Follow
 
-from django_project.models import Project, Task, Milestone, Component
+from django_project.models import Project, Task, Milestone, Component, Comment
 
 
 class FollowSerializerMixin(object):
@@ -72,7 +71,8 @@ class TaskSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializ
     class Meta:
         model = Task
         #fields = ('summary',)
-        
+
+
 class SerializerMethodFieldArgs(serializers.Field):
     """
     A field that gets its value by calling a method on the serializer it's attached to.
@@ -105,6 +105,7 @@ class GenericForeignKeyMixin(object):
         except Exception as e:
             print(e)
             return ''
+
 
 class NotificationSerializer(GenericForeignKeyMixin, serializers.Serializer):
     id = serializers.IntegerField()
@@ -145,13 +146,41 @@ class VersionSerializer(serializers.Serializer):
         return ver
         
         
-class CommentSerializer(GenericForeignKeyMixin, serializers.Serializer):
-    content_object_descr = serializers.CharField(source='content_object', read_only=True)
-    content_object = SerializerMethodFieldArgs('get_related_object_url', 'content_object')  
+class CommentSerializer(GenericForeignKeyMixin, serializers.HyperlinkedModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+    #content_object_descr = serializers.CharField(source='content_object', read_only=True)
+    #content_object = SerializerMethodFieldArgs('get_related_object_url', 'content_object')  
     
-    user_descr = serializers.CharField(source='user', read_only=True)
-    user = SerializerMethodFieldArgs('get_related_object_url', 'user')
+    author_descr = serializers.CharField(source='author', read_only=True)
+    author = SerializerMethodFieldArgs('get_related_object_url', 'author')
     
-    comment = serializers.CharField()
-    submit_date = serializers.CharField()
+    class Meta:
+        model = Comment
+        #fields = ('comment',)
+        exclude = ('content_type', 'object_pk', )
+        write_only_fields = ('comment',) 
+        
+    def get_parent_object(self, instance=None):
+        if instance:
+            return instance.content_object
+        else:
+            from django.core.urlresolvers import resolve
+            #TODO: there must be a better way to get the parent viewset????
+            path = '/'.join(self.context['request'].path.split('/')[:-2])+'/'
+            parent_viewset = resolve(path)
+            object = parent_viewset.func.cls.queryset.get(**parent_viewset.kwargs)
+            return object
+        
+    def restore_object(self, attrs, instance=None):
+        #assert instance is None, 'Cannot update comment with CommentSerializer'      
+        
+        object = self.get_parent_object(instance)   
+        values = {'comment': attrs['comment'], 'content_object':object, 'author':self.context['request'].user}                       
+        if instance:
+            for (key, value) in values.items():
+                setattr(instance, key, value)
+            return instance
+        else:
+            comment = Comment(**values)
+            return comment
         

@@ -5,8 +5,7 @@ import reversion
 
 from follow.models import Follow
 
-from django_project.signals import workflow_task_transition, workflow_task_resolved, workflow_task_new
-
+from django_project import signals
 
 class ProjectMixin(object):
     def save(self, *args, **kwargs):
@@ -50,10 +49,23 @@ class TaskMixin(object):
             print('TaskMixin::save 2', transition)
             
             if new_state.is_resolved:
-                workflow_task_resolved.send(sender=Task, instance=self, transition=transition, old_state=old_state, new_state=new_state)
+                signals.workflow_task_resolved.send(sender=Task, instance=self, transition=transition, old_state=old_state, new_state=new_state)
             else:
-                workflow_task_transition.send(sender=Task, instance=self, transition=transition, old_state=old_state, new_state=new_state)
+                signals.workflow_task_transition.send(sender=Task, instance=self, transition=transition, old_state=old_state, new_state=new_state)
         else:
-            workflow_task_new.send(sender=Task, instance=self)
+            signals.workflow_task_new.send(sender=Task, instance=self)
             
+        return ret
+
+
+class CommentMixin(object):
+    def save(self, *args, **kwargs):
+        from django_project.models import Comment
+        
+        exists = self.id is not None
+        
+        ret = super(CommentMixin, self).save(*args, **kwargs)
+        
+        if not exists:
+            signals.commented.send(sender=Comment, instance=self.content_object, comment=self)
         return ret

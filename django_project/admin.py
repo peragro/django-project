@@ -14,6 +14,8 @@ from django_project.models import TaskType
 from django_project.models import Status
 from django_project.models import Transition
 
+from django_project.models import Comment
+
 
 class StatusAdmin(admin.ModelAdmin):
     list_display = ( 'id', 'name', 'order', 'is_resolved', 'project')
@@ -109,6 +111,8 @@ admin.site.register(Project)
 admin.site.register(Membership)
 admin.site.register(Component)
 admin.site.register(Milestone)
+
+admin.site.register(Comment)
 
 
 

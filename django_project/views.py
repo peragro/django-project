@@ -3,8 +3,6 @@ from django.contrib.auth.models import User, Group
 from django.contrib.contenttypes.models import ContentType
 from django.core.urlresolvers import resolve
 
-from django.contrib.comments.models import Comment
-
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework.response import Response
@@ -22,7 +20,7 @@ import follow
 from django_project.serializers import UserSerializer, GroupSerializer, FollowSerializer, VersionSerializer, CommentSerializer
 from django_project.serializers import ProjectSerializer, MilestoneSerializer, TaskSerializer, NotificationSerializer, ComponentSerializer
 
-from django_project.models import Project, Task, Milestone, Component
+from django_project.models import Project, Task, Milestone, Component, Comment
 
 from django_project import signals
 from django_project import filters as dp_filters
@@ -168,7 +166,7 @@ class NestedViewSetMixin(object):
                     field = names[None]
                     handle_field(filter, field, value)
                     
-        if len(filter)==0:
+        if len(filter)==0 and len(self.kwargs):
             raise Exception('NestedViewSetMixin: could not figure the filter to use for the nested route %s %s. Did you give a lookup param to NestedSimpleRouter'%(self, self.kwargs))
         print('ComponentViewSet', filter)
         qs =  qs.filter(**filter)

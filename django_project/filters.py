@@ -1,5 +1,4 @@
 import django_filters
-from django.contrib.comments.models import Comment
 
 from django_project import models
 
@@ -35,4 +34,4 @@ class ProjectFilter(django_filters.FilterSet):
 
 class CommentFilter(django_filters.FilterSet):
     class Meta:
-        model = Comment
+        model = models.Comment

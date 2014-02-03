@@ -10,3 +10,6 @@ workflow_task_resolved = django.dispatch.Signal(providing_args=["instance", "tra
 follow = django.dispatch.Signal(providing_args=["follower", "followee"])
 
 unfollow = django.dispatch.Signal(providing_args=["follower", "followee"])
+
+
+commented = django.dispatch.Signal(providing_args=["instance", "comment"])

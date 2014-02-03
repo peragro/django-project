@@ -57,3 +57,17 @@ def handler(instance, transition, old_state, new_state, **kwargs):
 signals.workflow_task_new.connect(workflow_task_handler_creator('created'), dispatch_uid='django_project.handlers.workflow_task_new')
 signals.workflow_task_transition.connect(workflow_task_handler_creator('updated'), dispatch_uid='django_project.handlers.workflow_task_transition')
 signals.workflow_task_resolved.connect(workflow_task_handler_creator('resolved'), dispatch_uid='django_project.handlers.workflow_task_resolved')
+
+
+def commented_handler(instance, comment, **kwargs):
+    for follow in Follow.objects.get_follows(instance):
+        notify.send(instance.author,
+                    recipient=follow.user, 
+                    actor=instance.author, 
+                    verb='commented',
+                    action_object=comment, 
+                    description=comment.comment[:50]+'...', 
+                    target=instance)
+
+# connect the signal
+signals.commented.connect(commented_handler, dispatch_uid='django_project.handlers.commented_handler')

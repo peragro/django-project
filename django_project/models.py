@@ -9,7 +9,7 @@ from django.utils.translation import ugettext as _
 from autoslug import AutoSlugField
 
 
-from django_project.mixins import ProjectMixin, TaskMixin
+from django_project.mixins import ProjectMixin, TaskMixin, CommentMixin
 
 
 class Project(ProjectMixin, models.Model):
@@ -227,6 +227,42 @@ class Task(TaskMixin, models.Model):
 
     def __unicode__(self):
         return u'Task:%s' % (self.summary)
+
+
+from django.conf import settings
+from django.contrib.contenttypes import generic
+from django_project.managers import CommentManager
+from django.contrib.contenttypes.models import ContentType
+
+COMMENT_MAX_LENGTH = getattr(settings, 'COMMENT_MAX_LENGTH', 3000)
+
+class Comment(CommentMixin, models.Model):
+    """
+    """
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('author'), related_name="%(class)s_comments")
+    
+    content_type = models.ForeignKey(ContentType,
+            verbose_name=_('content type'),
+            related_name="content_type_set_for_%(class)s")
+    object_pk = models.TextField(_('object ID'))
+    content_object = generic.GenericForeignKey(ct_field="content_type", fk_field="object_pk")
+
+    comment = models.TextField(_('comment'), max_length=COMMENT_MAX_LENGTH)
+
+    # Metadata about the comment
+    submit_date = models.DateTimeField(_('date/time submitted'), auto_now_add=True, editable=False)
+
+    # Manager
+    objects = CommentManager()
+
+    class Meta:
+        ordering = ('submit_date',)
+        permissions = [("can_moderate", "Can moderate comments")]
+        verbose_name = _('comment')
+        verbose_name_plural = _('comments')
+
+    def __str__(self):
+        return "%s: %s..." % (self.author.username, self.comment[:50])
 
 
 from follow import utils
