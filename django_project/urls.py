@@ -16,7 +16,7 @@ projects_router = routers.NestedSimpleRouter(router, r'projects', lookup='projec
 projects_router.register(r'components', views.ComponentViewSet)
 projects_router.register(r'tasks', views.TaskViewSet)
 
-users_router = routers.NestedSimpleRouter(router, r'users', lookup='TaskViewSet__owner11ProjectViewSet__membership')
+users_router = routers.NestedSimpleRouter(router, r'users', lookup='TaskViewSet__owner11ProjectViewSet__members')
 users_router.register(r'tasks', views.TaskViewSet)
 users_router.register(r'projects', views.ProjectViewSet)
 

@@ -127,18 +127,6 @@ class NestedViewSetMixin(object):
         projects_router.register(r'components', views.ComponentsViewSet)
         """
         qs = super(viewsets.ModelViewSet, self).get_queryset()
-        print('ComponentViewSet', self.__class__.__name__)
-        print('ComponentViewSet', self.kwargs)
-
-        path = self.request._request.path
-        print(path)
-        print(dir(resolve(path).func))
-        blah = resolve(path).func.cls
-        for field in dir(blah):
-            try:
-                print(field+' -->'+str(getattr(blah, field)))
-            except:
-                pass
 
         def handle_field(filter, field_name, value):
             field = getattr(qs.model, field_name)
