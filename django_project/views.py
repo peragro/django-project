@@ -35,14 +35,14 @@ class FollowingModelViewSet(viewsets.ModelViewSet):
         path = request._request.path
         print(path)
         ret = super(FollowingModelViewSet, self).metadata(request)
-        if 'pk' in self.kwargs:
+        if has_primary_key(self.kwargs):
             methods = []
             
             methods.append({'url': path+'follow/', 'methods': ['POST', 'DELETE']})
             methods.append({'url': path+'followers/', 'methods': ['GET']})
             methods.append({'url': path+'activity/', 'methods': ['GET']})
             
-            if 'methods' in ret:
+            if 'methods' not in ret:
                 ret['methods'] = []
             ret['methods'].extend(methods)
         return ret
@@ -150,7 +150,7 @@ class NestedViewSetMixin(object):
                 filter[field.fk_field] = int(value)
                 filter[field.ct_field] = ct
             else:
-                filter[field] = int(value)
+                filter[field_name] = int(value)
             
         filter = {}
         for key, value in self.kwargs.items():
@@ -276,12 +276,14 @@ class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelV
     search_fields = ('summary', 'description')
     
     def metadata(self, request):
-        ret = super(FollowingModelViewSet, self).metadata(request)
-        if 'pk' in self.kwargs:
+        ret = super(TaskViewSet, self).metadata(request)
+        print('TaskViewSet', self.kwargs)
+        if has_primary_key(self.kwargs):
+            path = request._request.path
             methods = []
             methods.append({'url': path+'revisions/', 'methods': ['GET']})
             
-            if 'methods' in ret:
+            if 'methods' not in ret:
                 ret['methods'] = []
             ret['methods'].extend(methods)
         return ret
@@ -290,12 +292,6 @@ class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelV
     def revisions(self, request, pk, **kwargs):
         task = self.queryset.get(id=int(pk))
         versions = task.versions()
-        print(versions)
-        for field in dir(versions[0].revision):
-            try:
-                print(field+' -->'+str(getattr(versions[0].revision, field)))
-            except:
-                pass
 
         serializer = paginate_data(self, versions, VersionSerializer)
 
@@ -307,7 +303,11 @@ class CommentModelViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, viewset
     serializer_class = CommentSerializer
     filter_class = dp_filters.CommentFilter
     search_fields = ('user__username', 'comment')
-    
+
+
+def has_primary_key(kwargs):
+    return (True in map(lambda x: x.endswith('_pk'), kwargs.keys()))
+
 
 def paginate_data(self, data, serializer_class=None):
     from rest_framework.pagination import PaginationSerializer

@@ -256,7 +256,7 @@ class Comment(CommentMixin, models.Model):
     objects = CommentManager()
 
     class Meta:
-        ordering = ('submit_date',)
+        ordering = ('-submit_date',)
         permissions = [("can_moderate", "Can moderate comments")]
         verbose_name = _('comment')
         verbose_name_plural = _('comments')
