@@ -37,7 +37,8 @@ def workflow_task_handler_creator(verb):
     print('REG workflow_task_handler_creator::handler', verb)
     def handler(instance, *args, **kwargs):
         print('workflow_task_handler_creator::handler', verb)
-        for follow in Follow.objects.get_follows(instance.project):
+        follow_obj = instance.project if verb=='created' else instance
+        for follow in Follow.objects.get_follows(follow_obj):
             notify.send(instance.author,
                         recipient=follow.user, 
                         actor=instance.author, 

@@ -12,9 +12,17 @@ router.register(r'milestones', views.MilestoneModelViewSet)
 router.register(r'groups', views.GroupViewSet)
 router.register(r'comments', views.CommentModelViewSet)
 
+router.register(r'tasktypes', views.TaskTypeViewSet)
+router.register(r'priorities', views.PriorityViewSet)
+router.register(r'statuses', views.StatusViewSet)
+
+
 projects_router = routers.NestedSimpleRouter(router, r'projects', lookup='project')
 projects_router.register(r'components', views.ComponentViewSet)
 projects_router.register(r'tasks', views.TaskViewSet)
+projects_router.register(r'tasktypes', views.TaskTypeViewSet)
+projects_router.register(r'priorities', views.PriorityViewSet)
+projects_router.register(r'statuses', views.StatusViewSet)
 
 users_router = routers.NestedSimpleRouter(router, r'users', lookup='TaskViewSet__owner11ProjectViewSet__members')
 users_router.register(r'tasks', views.TaskViewSet)

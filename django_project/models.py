@@ -203,7 +203,7 @@ class Task(TaskMixin, models.Model):
     project = models.ForeignKey(Project, verbose_name=_('project'))
     
     author = models.ForeignKey(User, verbose_name=_('author'), related_name='created_tasks', blank=True)
-    author_ip = models.IPAddressField(null=True, blank=True)
+    #author_ip = models.IPAddressField(null=True, blank=True)
     
     owner = models.ForeignKey(User, verbose_name=_('owner'), related_name='owned_tasks', null=True, blank=True)
 
@@ -220,10 +220,9 @@ class Task(TaskMixin, models.Model):
     
     created_at = models.DateTimeField(_('created at'), auto_now_add=True, editable=False)
 
-    edited_at = models.DateTimeField(_('edited at'), auto_now=True)
-    editor = models.ForeignKey(User, verbose_name=_('editor'), blank=True,
-        null=True)
-    editor_ip = models.IPAddressField(null=True, blank=True)
+    #edited_at = models.DateTimeField(_('edited at'), auto_now=True)
+    #editor = models.ForeignKey(User, verbose_name=_('editor'), blank=True, null=True)
+    #editor_ip = models.IPAddressField(null=True, blank=True)
 
     def __unicode__(self):
         return u'Task:%s' % (self.summary)

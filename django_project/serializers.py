@@ -10,6 +10,7 @@ from notifications.models import Notification
 from follow.models import Follow
 
 from django_project.models import Project, Task, Milestone, Component, Comment
+from django_project import models
 
 
 class FollowSerializerMixin(object):
@@ -40,37 +41,74 @@ class UserSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializ
     class Meta:
         model = User
         fields = ('id', 'url', 'username', 'email', 'groups')
-        
+
+
+class UserNameSerializer(serializers.HyperlinkedModelSerializer):
+    name = serializers.CharField(source='username', read_only=True)
+    class Meta:
+        model = User
+        fields = ('id', 'url', 'name')        
         
 
 class MilestoneSerializer(serializers.HyperlinkedModelSerializer):
+    id = serializers.IntegerField(read_only=True)
     class Meta:
         model = Milestone
-        fields = ('id', 'name',)
+
+
+class ProjectMemberSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'url', 'username')
 
 
 class ProjectSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+    members = ProjectMemberSerializer(many=True)
+    author_descr = serializers.CharField(source='author', read_only=True)
     class Meta:
         model = Project
-        fields = ('id', 'url', 'name',)
 
 
 class ComponentSerializer(serializers.HyperlinkedModelSerializer):
+    id = serializers.IntegerField(read_only=True)
     class Meta:
         model = Component
-        fields = ('id', 'url', 'name',)
-    
+        read_only_fields = ('project', )
+
+
+class TaskTypeSerializer(serializers.HyperlinkedModelSerializer):
+    id = serializers.IntegerField()
+    class Meta:
+        model = models.TaskType
+
+
+class PrioritySerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = models.Priority
+
+
+class StatusSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = models.Status
+        
 
 class TaskSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializer):
-    id = serializers.IntegerField()
-    status = serializers.CharField()
-    priority = serializers.CharField()
-    type = serializers.CharField()
-    component = ComponentSerializer()
+    id = serializers.IntegerField(read_only=True)
+    status_descr = serializers.CharField(source='status', read_only=True)
+    priority_descr = serializers.CharField(source='priority', read_only=True)
+    type_descr = serializers.CharField(source='type', read_only=True)
+    component_descr = serializers.CharField(source='component', read_only=True)
+    
+    author_descr = serializers.CharField(source='author', read_only=True)
+    owner_descr = serializers.CharField(source='owner', read_only=True)
     
     class Meta:
         model = Task
-        #fields = ('summary',)
+        read_only_fields = ('author', 'project') 
+        
+    def save_object(self, task, *args, **kwargs):
+        task.save_revision(self.context['request'].user, task.description, *args, **kwargs) #TODO: add interesting commit message!
 
 
 class SerializerMethodFieldArgs(serializers.Field):
@@ -108,7 +146,7 @@ class GenericForeignKeyMixin(object):
 
 
 class NotificationSerializer(GenericForeignKeyMixin, serializers.Serializer):
-    id = serializers.IntegerField()
+    id = serializers.IntegerField(read_only=True)
     level = serializers.CharField()
     
     recipient_descr = serializers.CharField(source='recipient', read_only=True)

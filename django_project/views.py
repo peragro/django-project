@@ -17,35 +17,50 @@ from notifications.models import Notification
 from follow.models import Follow
 import follow
 
-from django_project.serializers import UserSerializer, GroupSerializer, FollowSerializer, VersionSerializer, CommentSerializer
-from django_project.serializers import ProjectSerializer, MilestoneSerializer, TaskSerializer, NotificationSerializer, ComponentSerializer
-
-from django_project.models import Project, Task, Milestone, Component, Comment
+from django_project import serializers
+from django_project import models
 
 from django_project import signals
 from django_project import filters as dp_filters
 
-
-class FollowingModelViewSet(viewsets.ModelViewSet):
+class MetaDataModelViewSet(viewsets.ModelViewSet):
+    """
+    Collects metadata of each subclass(methods aren't overridden)
+    using 'metadata_<entry>()' methods.
+    """
     def metadata(self, request):
-        print('-'*80)
-        #for field in dir(request):
-        #    print('field: ', field, '-->', getattr(request, field))
-        print('-'*80)
-        path = request._request.path
-        print(path)
-        ret = super(FollowingModelViewSet, self).metadata(request)
-        if has_primary_key(self.kwargs):
+        ret = super(MetaDataModelViewSet, self).metadata(request)
+        
+        mros = type(self).mro() # Get the Inheritance tree
+        for mro in mros:
+            for method in mro.__dict__: # Only iterate non-inherted class methods
+                if method.startswith('metadata_'):
+                    name = method[len('metadata_'):]
+                    val = getattr(mro, method)(self, request)
+                    if val:
+                        is_dict = type(val) is dict
+                        if name not in ret:
+                            ret[name] = {} if is_dict else []
+                        if is_dict:
+                            ret[name].update(val)
+                        else:
+                            ret[name].extend(val)
+
+        return ret
+
+
+class FollowingModelViewSet(MetaDataModelViewSet):
+    def metadata_methods(self, request):
+        print('FollowingModelViewSet::metadata_methods', self.kwargs) 
+        if has_instance_key(self.kwargs):
+            path = request._request.path
             methods = []
             
             methods.append({'url': path+'follow/', 'methods': ['POST', 'DELETE']})
             methods.append({'url': path+'followers/', 'methods': ['GET']})
             methods.append({'url': path+'activity/', 'methods': ['GET']})
-            
-            if 'methods' not in ret:
-                ret['methods'] = []
-            ret['methods'].extend(methods)
-        return ret
+
+            return methods
         
     @action(methods=['POST', 'DELETE'], permission_classes=[IsAuthenticated])
     def follow(self, request, pk, **kwargs):  
@@ -77,7 +92,7 @@ class FollowingModelViewSet(viewsets.ModelViewSet):
         
         users = User.objects.filter(id__in=Follow.objects.get_follows(obj).values_list('user'))
         
-        serializer = paginate_data(self, users, UserSerializer)
+        serializer = paginate_data(self, users, serializers.UserSerializer)
 
         return Response(serializer.data)
         
@@ -99,7 +114,7 @@ class FollowingModelViewSet(viewsets.ModelViewSet):
         
         notifications = Notification.objects.filter(**kwargs)
         
-        serializer = paginate_data(self, notifications, NotificationSerializer)
+        serializer = paginate_data(self, notifications, serializers.NotificationSerializer)
 
         return Response(serializer.data)
 
@@ -154,9 +169,9 @@ class NestedViewSetMixin(object):
                     field = names[None]
                     handle_field(filter, field, value)
                     
-        if len(filter)==0 and len(self.kwargs):
+        if len(filter)==0 and (len(self.kwargs) and not (len(self.kwargs)==1 and 'pk' in self.kwargs)):
             raise Exception('NestedViewSetMixin: could not figure the filter to use for the nested route %s %s. Did you give a lookup param to NestedSimpleRouter'%(self, self.kwargs))
-        print('ComponentViewSet', filter)
+        print('NestedViewSetMixin', filter)
         qs =  qs.filter(**filter)
         return qs
 
@@ -184,17 +199,12 @@ class FilteredModelViewSetMixin(object):
         
 #-----------------------------------------------------------------------        
 
-class MilestoneModelViewSet(viewsets.ModelViewSet):
-    queryset = Milestone.objects.all()
-    serializer_class = MilestoneSerializer
-    
-
 class UserViewSet(FollowingModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
     queryset = User.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = serializers.UserSerializer
     notifications_field = 'recipient'
     
     def can_change_follow(self, user, obj):
@@ -206,7 +216,7 @@ class UserViewSet(FollowingModelViewSet):
         obj = self.queryset.get(id=int(pk))
         
         results = Follow.objects.filter(user=obj)
-        serializer = paginate_data(self, results, FollowSerializer)
+        serializer = paginate_data(self, results, serializers.FollowSerializer)
         
         return Response(serializer.data)
 
@@ -218,7 +228,7 @@ class CurrentUserDetail(APIView):
     permission_classes = (IsAuthenticated,)
     
     def get(self, request, format=None):
-        serializer = UserSerializer(request.user)
+        serializer = serializers.UserSerializer(request.user)
         return Response(serializer.data)
 
 
@@ -227,15 +237,15 @@ class GroupViewSet(FollowingModelViewSet):
     API endpoint that allows groups to be viewed or edited.
     """
     queryset = Group.objects.all()
-    serializer_class = GroupSerializer
+    serializer_class = serializers.GroupSerializer
 
 
 class ProjectViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
-    queryset = Project.objects.all()
-    serializer_class = ProjectSerializer
+    queryset = models.Project.objects.all()
+    serializer_class = serializers.ProjectSerializer
     notifications_field = 'target'
     filter_class = dp_filters.ProjectFilter
     search_fields = ('author__username', 'name')
@@ -245,50 +255,113 @@ class ProjectViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingMod
         return user.id != obj.author.id
 
 
+class MilestoneModelViewSet(viewsets.ModelViewSet):
+    queryset = models.Milestone.objects.all()
+    serializer_class = serializers.MilestoneSerializer
+
+
 class ComponentViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
     """
     API endpoint that allows Components to be viewed or edited.
     """
-    queryset = Component.objects.all()
-    serializer_class = ComponentSerializer
+    queryset = models.Component.objects.all()
+    serializer_class = serializers.ComponentSerializer
+
+
+class TaskTypeViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
+    """
+    API endpoint that allows TaskTypes to be viewed or edited.
+    """
+    queryset = models.TaskType.objects.all()
+    serializer_class = serializers.TaskTypeSerializer
+
+
+class PriorityViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
+    """
+    API endpoint that allows Priorities to be viewed or edited.
+    """
+    queryset = models.Priority.objects.all()
+    serializer_class = serializers.PrioritySerializer
+
+
+class StatusViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
+    """
+    API endpoint that allows Statuses to be viewed or edited.
+    """
+    queryset = models.Status.objects.all()
+    serializer_class = serializers.StatusSerializer    
 
 
 class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
-    queryset = Task.objects.all()
-    serializer_class = TaskSerializer
+    queryset = models.Task.objects.all()
+    serializer_class = serializers.TaskSerializer
     notifications_field = 'action_object'
     filter_class = dp_filters.TaskFilter
     search_fields = ('summary', 'description')
-    
-    def metadata(self, request):
-        ret = super(TaskViewSet, self).metadata(request)
-        print('TaskViewSet', self.kwargs)
-        if has_primary_key(self.kwargs):
+
+
+    def pre_save(self, obj):
+        obj.author = self.request.user
+        #TODO: validate this is a nested view when saving
+        if not obj.project:
+            project_pk = self.kwargs['project_pk']
+            obj.project = models.Project.objects.get(id=int(project_pk))
+        
+    def metadata_methods(self, request):
+        print('TaskViewSet::metadata_methods')
+        if has_instance_key(self.kwargs):
             path = request._request.path
             methods = []
             methods.append({'url': path+'revisions/', 'methods': ['GET']})
+            return methods
+    
+    def metadata_options(self, request):    
+        print('TaskViewSet::metadata_options')
+        project_pk = None
+        if has_primary_key(self.kwargs):
+            if 'project_pk' in self.kwargs:
+                project_pk = self.kwargs['project_pk']
+        elif has_instance_key(self.kwargs):
+            task = self.queryset.get(id=int(self.kwargs['pk']))
+            project_pk = task.project.id
             
-            if 'methods' not in ret:
-                ret['methods'] = []
-            ret['methods'].extend(methods)
-        return ret
-
+            if project_pk:
+                data = {}   
+                for model, field in [('Priority', 'priority'), ('TaskType', 'type'), ('Component', 'component'), ('Milestone', 'milestone')]:
+                    qs = getattr(models, model).objects.filter(project_id=int(project_pk))
+                    data[field] = getattr(serializers, model+'Serializer')(qs, many=True, context={'request': request}).data
+                for model, field in [('User', 'owner')]:
+                    qs = getattr(models, model).objects.filter(membership__project_id=int(project_pk))
+                    data[field] = getattr(serializers, model+'NameSerializer')(qs, many=True, context={'request': request}).data
+                    
+                for model, field in [('Status', 'status')]:
+                    if 'pk' in self.kwargs: 
+                        #We're holding a task for editting. So only return allowed transitions.
+                        task = self.queryset.get(id=int(self.kwargs['pk']))
+                        qs = getattr(models, model).objects.filter(transition__source=task.status)
+                    else:
+                        #We're going to create a task, so only return intial statuses.
+                        qs = getattr(models, model).objects.filter(project_id=int(project_pk), is_initial=True)
+                    data[field] = getattr(serializers, model+'Serializer')(qs, many=True, context={'request': request}).data
+                
+                return data
+    
     @link(permission_classes=[])
     def revisions(self, request, pk, **kwargs):
         task = self.queryset.get(id=int(pk))
         versions = task.versions()
 
-        serializer = paginate_data(self, versions, VersionSerializer)
+        serializer = paginate_data(self, versions, serializers.VersionSerializer)
 
         return Response(serializer.data)
-
+        
 
 class CommentModelViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
-    serializer_class = CommentSerializer
+    queryset = models.Comment.objects.all()
+    serializer_class = serializers.CommentSerializer
     filter_class = dp_filters.CommentFilter
     search_fields = ('user__username', 'comment')
 
@@ -296,6 +369,8 @@ class CommentModelViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, viewset
 def has_primary_key(kwargs):
     return (True in map(lambda x: x.endswith('_pk'), kwargs.keys()))
 
+def has_instance_key(kwargs):
+    return 'pk' in kwargs
 
 def paginate_data(self, data, serializer_class=None):
     from rest_framework.pagination import PaginationSerializer
