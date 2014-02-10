@@ -51,8 +51,7 @@ class TaskAdmin(VersionAdmin):
         (_("Author & editor"), {
             #'classes': ['collapsed collapse-toggle'],
             'fields': (
-                ('author', 'author_ip'),
-                ('editor', 'editor_ip'),
+                ('author', ),
             ),
         }),
     )
