@@ -306,7 +306,7 @@ class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelV
     def pre_save(self, obj):
         obj.author = self.request.user
         #TODO: validate this is a nested view when saving
-        if not obj.project:
+        if not hasattr(obj, 'project') or not obj.project:
             project_pk = self.kwargs['project_pk']
             obj.project = models.Project.objects.get(id=int(project_pk))
         
