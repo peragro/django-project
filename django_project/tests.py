@@ -7,7 +7,49 @@ from django_project.models import Project, Task, Status, Transition, Component, 
 from django_project import signals
 
 
+from django.conf import settings
+from django.db.models import loading
+
+
+from django.db import models
+from django_project.managers import ObjectTaskMixin
+
+class Asset(ObjectTaskMixin):
+    title = models.CharField(max_length=128)
+
+    def __unicode__(self):
+        return self.title
+
 class ProjectTest(TestCase):
+    initiated = False
+
+    @classmethod
+    def setUpClass(cls, *args, **kwargs):
+        if not cls.initiated:
+            cls.create_models_from_app('django_project.tests')
+            cls.initiated = True
+
+        super(ProjectTest, cls).setUpClass(*args, **kwargs)
+
+    @classmethod
+    def create_models_from_app(cls, app_name):
+        """
+        Manually create Models (used only for testing) from the specified string app name.
+        Models are loaded from the module "<app_name>.models"
+        """
+        from django.db import connection, DatabaseError
+        from django.db.models.loading import load_app
+
+        app = load_app(app_name)
+        from django.core.management import sql
+        from django.core.management.color import no_style
+        sql = sql.sql_create(app, no_style(), connection)
+        cursor = connection.cursor()
+        for statement in sql:
+            try:
+                cursor.execute(statement)
+            except DatabaseError, excn:
+                print excn.message
 
     def setUp(self):
         self.author = User.objects.create(username='Test User')
@@ -71,6 +113,11 @@ class ProjectTest(TestCase):
         self.task.status = self.state_pro
         self.task.save()
         
+        transition_handler.transition = self.transition2
+        
+        self.task.status = self.state_pro
+        self.task.save()
+        
         transition_handler.transition = self.transition3
         
         self.task.status = self.state_pub
@@ -110,4 +157,17 @@ class ProjectTest(TestCase):
         self.task = Task.objects.get(id=self.task.id)
         self.assertEqual('revision 1', self.task.description)
 
+    def test_task_manager(self):    
+        asset = Asset.objects.create(title="gg")
+        asset.save()
+        print asset.tasks
+        asset.add_task(self.task)
+        print asset.tasks.all()
+        asset.add_task(self.task)
+        print asset.tasks.all()
         
+        #print dir(self.task)
+        print asset.tasks_for_author(self.task.author)
+        
+        asset.remove_task(self.task)
+        print asset.tasks.all()

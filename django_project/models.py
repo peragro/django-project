@@ -264,6 +264,25 @@ class Comment(CommentMixin, models.Model):
         return "%s: %s..." % (self.author.username, self.comment[:50])
 
 
+class ObjectTask(models.Model):
+    """
+    """
+    task = models.ForeignKey(Task, verbose_name=_('task'), related_name="%(class)s_tasks")
+    
+    content_type = models.ForeignKey(ContentType,
+            verbose_name=_('content type'),
+            related_name="content_type_set_for_%(class)s")
+    object_pk = models.TextField(_('object ID'))
+    content_object = generic.GenericForeignKey(ct_field="content_type", fk_field="object_pk")
+
+    class Meta:
+        verbose_name = _('objecttask')
+        verbose_name_plural = _('objecttasks')
+
+    def __str__(self):
+        return "%s for %s" % (self.task, self.content_object)
+        
+
 from follow import utils
 import reversion
 

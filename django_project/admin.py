@@ -10,6 +10,7 @@ from django_project.models import Priority
 from django_project.models import Project
 from django_project.models import Task
 from django_project.models import TaskType
+from django_project.models import ObjectTask
 
 from django_project.models import Status
 from django_project.models import Transition
@@ -106,6 +107,7 @@ admin.site.register(Status, StatusAdmin)
 admin.site.register(Priority, OrderedDictModelAdmin)
 admin.site.register(TaskType, TaskTypeAdmin)
 admin.site.register(Task, TaskAdmin)
+admin.site.register(ObjectTask)
 admin.site.register(Project)
 admin.site.register(Membership)
 admin.site.register(Component)
