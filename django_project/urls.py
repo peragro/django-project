@@ -11,6 +11,7 @@ router.register(r'users', views.UserViewSet)
 router.register(r'milestones', views.MilestoneModelViewSet)
 router.register(r'groups', views.GroupViewSet)
 router.register(r'comments', views.CommentModelViewSet)
+router.register(r'notifications', views.NotificationModelViewSet)
 
 router.register(r'tasktypes', views.TaskTypeViewSet)
 router.register(r'priorities', views.PriorityViewSet)

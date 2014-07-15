@@ -366,6 +366,12 @@ class CommentModelViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, viewset
     search_fields = ('user__username', 'comment')
 
 
+class NotificationModelViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Notification.objects.all()
+    serializer_class = serializers.NotificationSerializer
+
+    
+
 def has_primary_key(kwargs):
     return (True in map(lambda x: x.endswith('_pk'), kwargs.keys()))
 
