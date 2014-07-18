@@ -27,7 +27,7 @@ class StatusAdmin(admin.ModelAdmin):
     
 
 class TaskAdmin(VersionAdmin):
-    list_display = ( 'project', 'component', 'id', 'summary',
+    list_display = ( 'project', 'milestone', 'component', 'id', 'summary',
         'created_at', 'author', 'status', 'priority', 'type', 'nr_of_versions')
     list_display_links = ('summary',)
     list_filter = ('project',)

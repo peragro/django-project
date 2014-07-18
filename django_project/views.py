@@ -17,6 +17,8 @@ from notifications.models import Notification
 from follow.models import Follow
 import follow
 
+from rest_framework_extensions.mixins import NestedViewSetMixin
+
 from django_project import serializers
 from django_project import models
 
@@ -119,61 +121,13 @@ class FollowingModelViewSet(MetaDataModelViewSet):
         return Response(serializer.data)
 
 
-class NestedViewSetMixin(object):
-    def get_queryset(self):
-        """
-        NestedSimpleRouter support for Viewset.
-        Filter the nested objects using the parent through the 'lookup' field.
-        Its format is either:
-        - <ViewSet1>__<fielda>11<ViewSet2>__<fieldb>
-        - <field>
-        For Example:
-        class Project:
-            pass
-        class Task:
-            belongs_to_project = ForeignKey(Project)
-        class Component:
-            project = ForeignKey(Project)
-        projects_router = routers.NestedSimpleRouter(router, r'projects', lookup='belongs_to_project')
-        projects_router.register(r'tasks', views.TaskViewSet)
-        or
-        projects_router = routers.NestedSimpleRouter(router, r'projects', lookup='TaskViewSet__belongs_to_project11ComponentsViewSet__project')
-        projects_router.register(r'tasks', views.TaskViewSet)
-        projects_router.register(r'components', views.ComponentsViewSet)
-        """
-        qs = super(viewsets.ModelViewSet, self).get_queryset()
-
-        def handle_field(filter, field_name, value):
-            field = getattr(qs.model, field_name)
-            if field.__class__.__name__ =="GenericForeignKey":
-                #TODO: there must be a better way to get the parent viewset????
-                path = '/'.join(self.request._request.path.split('/')[:-3])+'/'
-                parent_viewset = resolve(path).func.cls
-                ct = ContentType.objects.get_for_model(parent_viewset.queryset.model)
-                filter[field.fk_field] = int(value)
-                filter[field.ct_field] = ct
-            else:
-                filter[field_name] = int(value)
-            
-        filter = {}
-        for key, value in self.kwargs.items():
-            if key.endswith('_pk'):
-                names = key[:-len('_pk')].split('11')
-                names = dict([name.split('__')  if name.find('__')>-1 else (None, name) for name in names])
-                print(names)
-                name = self.__class__.__name__ # <ViewSet>
-                if name in names:
-                    field = names[name]
-                    handle_field(filter, field, value)
-                elif None in names:
-                    field = names[None]
-                    handle_field(filter, field, value)
-                    
-        if len(filter)==0 and (len(self.kwargs) and not (len(self.kwargs)==1 and 'pk' in self.kwargs)):
-            raise Exception('NestedViewSetMixin: could not figure the filter to use for the nested route %s %s. Did you give a lookup param to NestedSimpleRouter'%(self, self.kwargs))
-        print('NestedViewSetMixin', filter)
-        qs =  qs.filter(**filter)
-        return qs
+def nested_viewset_with_genericfk(parent_viewset, viewset):
+    class Wrapper(viewset):
+        def get_queryset(self):
+            return super(Wrapper, self).get_queryset().filter(
+                content_type=ContentType.objects.get_for_model(parent_viewset.queryset.model)
+            )
+    return Wrapper
 
 
 class FilteredModelViewSetMixin(object):

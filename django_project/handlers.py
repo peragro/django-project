@@ -3,6 +3,17 @@ from follow.models import Follow
 
 from django_project import signals
 
+#Monkey patching the Follow clean function
+from django.core.exceptions import ValidationError
+def clean(instance):
+    '''
+    Only allow a single target to be selected on follow!
+    '''
+    fields = [field.name for field in instance._meta.fields if not field.name in ['id', 'user', 'datetime']]
+    values = filter(lambda a: a != None, [getattr(instance, field_name) for field_name in fields])
+    if len(values) != 1:
+        raise ValidationError('You should only set a single target!')
+Follow.clean = clean
 
 def follow_handler(follower, followee, **kwargs):
     """

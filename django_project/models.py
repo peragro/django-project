@@ -8,6 +8,7 @@ from django.utils.translation import ugettext as _
 
 from autoslug import AutoSlugField
 
+from smart_selects.db_fields import ChainedForeignKey 
 
 from django_project.mixins import ProjectMixin, TaskMixin, CommentMixin
 
@@ -64,7 +65,7 @@ class Component(models.Model):
         unique_together = ('project', 'name')
 
     def __unicode__(self):
-        return self.name
+        return self.project.name+': '+self.name
 
 
 class Membership(models.Model):
@@ -100,7 +101,7 @@ class Milestone(models.Model):
         unique_together = ('project', 'name')
 
     def __unicode__(self):
-        return self.name
+        return self.project.name+': '+self.name
 
 
 class DictModel(models.Model):
@@ -136,8 +137,19 @@ class Priority(OrderedDictModel):
         verbose_name = _('priority level')
         verbose_name_plural = _('priority levels')
         unique_together = ('project', 'name')
+    
+    def __unicode__(self):
+        return self.project.name+': '+self.name
+
+
+class TransitionChainedForeignKeyQuerySet(models.Manager):
+    def filter(self, **kwargs):
+        print 'TransitionChainedForeignKeyQuerySet', self.model, kwargs
+        if 'project' in kwargs:
+            kwargs['project'] = self.model.objects.get(pk=kwargs['project']).project.pk
+        return super(TransitionChainedForeignKeyQuerySet, self).filter(**kwargs)
         
-        
+                
 class Status(OrderedDictModel):
     """
     """
@@ -147,6 +159,9 @@ class Status(OrderedDictModel):
     destinations = models.ManyToManyField('self', verbose_name=_('destinations'), through='Transition', symmetrical=False, null=True, blank=True)
     slug = AutoSlugField(max_length=64, populate_from='name', always_update=True, unique_with='project')
 
+    objects = models.Manager()
+    special = TransitionChainedForeignKeyQuerySet()
+    
     def can_change_to(self, new_status):
         """
         Checks if ``Transition`` object with ``source`` set to ``self`` and
@@ -166,17 +181,27 @@ class Status(OrderedDictModel):
         ordering = ['order']
 
     def __unicode__(self):
-        return self.name
+        return self.project.name+': '+self.name
 
+class ChainedForeignKeyTransition(ChainedForeignKey):
 
+    def formfield(self, **kwargs):
+        defaults = {
+            #'queryset': self.rel.to._default_manager.complex_filter(self.rel.limit_choices_to),
+            'queryset': self.rel.to.special.complex_filter(self.rel.limit_choices_to),
+            'manager': 'special',
+        }
+        defaults.update(kwargs)
+        return super(ChainedForeignKeyTransition, self).formfield(**defaults)
+        
 class Transition(models.Model):
     """
     Instances allow to change source Status to destination Status.
     Needed for custom workflows.
     """
     source = models.ForeignKey(Status, verbose_name=_('source status'), related_name='sources')
-    destination = models.ForeignKey(Status, verbose_name=_('destination status'))
-
+    destination = ChainedForeignKeyTransition(Status, chained_field="source", chained_model_field="project", verbose_name=_('destination status'))
+    
     class Meta:
         verbose_name = _('transition')
         verbose_name_plural = _('transitions')
@@ -195,6 +220,9 @@ class TaskType(OrderedDictModel):
         verbose_name = _('task type')
         verbose_name_plural = _('task types')
         unique_together = ('project', 'name')
+    
+    def __unicode__(self):
+        return self.project.name+': '+self.name    
         
         
 class Task(TaskMixin, models.Model):
@@ -203,26 +231,22 @@ class Task(TaskMixin, models.Model):
     project = models.ForeignKey(Project, verbose_name=_('project'))
     
     author = models.ForeignKey(User, verbose_name=_('author'), related_name='created_tasks', blank=True)
-    #author_ip = models.IPAddressField(null=True, blank=True)
     
     owner = models.ForeignKey(User, verbose_name=_('owner'), related_name='owned_tasks', null=True, blank=True)
 
     summary = models.CharField(_('summary'), max_length=64)
     description = models.TextField(_('description'))
     
-    status = models.ForeignKey(Status, verbose_name=_('status'))
-    priority = models.ForeignKey(Priority, verbose_name=_('priority'))
-    type = models.ForeignKey(TaskType, verbose_name=_('task type'))
+    status = ChainedForeignKey(Status, chained_field="project", chained_model_field="project", verbose_name=_('status'))
+    priority = ChainedForeignKey(Priority, chained_field="project", chained_model_field="project", verbose_name=_('priority'))
+    type = ChainedForeignKey(TaskType, chained_field="project", chained_model_field="project", verbose_name=_('task type'))
     
     deadline = models.DateField(_('deadline'), null=True, blank=True, help_text='YYYY-MM-DD')
-    milestone = models.ForeignKey(Milestone, verbose_name=_('milestone'), null=True, blank=True)
-    component = models.ForeignKey(Component, verbose_name=_('component'))
+    
+    milestone = ChainedForeignKey(Milestone, chained_field="project", chained_model_field="project", verbose_name=_('milestone'), null=True, blank=True)
+    component = ChainedForeignKey(Component, chained_field="project", chained_model_field="project", verbose_name=_('component'))
     
     created_at = models.DateTimeField(_('created at'), auto_now_add=True, editable=False)
-
-    #edited_at = models.DateTimeField(_('edited at'), auto_now=True)
-    #editor = models.ForeignKey(User, verbose_name=_('editor'), blank=True, null=True)
-    #editor_ip = models.IPAddressField(null=True, blank=True)
 
     def __unicode__(self):
         return u'Task:%s' % (self.summary)

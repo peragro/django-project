@@ -13,6 +13,19 @@ from django_project.models import Project, Task, Milestone, Component, Comment
 from django_project import models
 
 
+class ExtendedHyperlinkedModelSerializer(serializers.HyperlinkedModelSerializer):
+    def to_native(self, obj):
+        from rest_framework.relations import RelatedField, PrimaryKeyRelatedField
+        res = super(ExtendedHyperlinkedModelSerializer, self).to_native(obj)
+        if obj:
+            res['id'] = obj.serializable_value('pk')
+            for field_name, field in self.fields.items():
+                if isinstance(field , RelatedField):
+                    res[field_name+"_id"] = obj.serializable_value(field_name)
+                    res[field_name+"_descr"] = str(getattr(obj, field_name))
+        return res
+
+
 class FollowSerializerMixin(object):
     def to_native(self, obj):
         ret = super(FollowSerializerMixin, self).to_native(obj)
@@ -30,85 +43,73 @@ class FollowSerializer(serializers.Serializer):
         return ret
 
 
-class GroupSerializer(serializers.HyperlinkedModelSerializer):
+class GroupSerializer(ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = Group
         fields = ('id', 'url', 'name')
 
 
-class UserSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializer):
+class UserSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerializer):
     groups = GroupSerializer(many=True)
     class Meta:
         model = User
         fields = ('id', 'url', 'username', 'email', 'groups')
 
 
-class UserNameSerializer(serializers.HyperlinkedModelSerializer):
+class UserNameSerializer(ExtendedHyperlinkedModelSerializer):
     name = serializers.CharField(source='username', read_only=True)
     class Meta:
         model = User
         fields = ('id', 'url', 'name')        
         
 
-class MilestoneSerializer(serializers.HyperlinkedModelSerializer):
-    id = serializers.IntegerField(read_only=True)
+class MilestoneSerializer(ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = Milestone
 
 
-class ProjectMemberSerializer(serializers.HyperlinkedModelSerializer):
+class ProjectMemberSerializer(ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'url', 'username')
 
 
-class ProjectSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializer):
-    id = serializers.IntegerField(read_only=True)
+class ProjectSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerializer):
     members = ProjectMemberSerializer(many=True)
-    author_descr = serializers.CharField(source='author', read_only=True)
     class Meta:
         model = Project
 
 
-class ComponentSerializer(serializers.HyperlinkedModelSerializer):
-    id = serializers.IntegerField(read_only=True)
+class ComponentSerializer(ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = Component
         read_only_fields = ('project', )
 
 
-class TaskTypeSerializer(serializers.HyperlinkedModelSerializer):
-    id = serializers.IntegerField()
+class TaskTypeSerializer(ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = models.TaskType
 
 
-class PrioritySerializer(serializers.HyperlinkedModelSerializer):
+class PrioritySerializer(ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = models.Priority
 
 
-class StatusSerializer(serializers.HyperlinkedModelSerializer):
+class StatusSerializer(ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = models.Status
-        
 
-class TaskSerializer(FollowSerializerMixin, serializers.HyperlinkedModelSerializer):
-    id = serializers.IntegerField(read_only=True)
-    status_descr = serializers.CharField(source='status', read_only=True)
-    priority_descr = serializers.CharField(source='priority', read_only=True)
-    type_descr = serializers.CharField(source='type', read_only=True)
-    component_descr = serializers.CharField(source='component', read_only=True)
-    
-    author_descr = serializers.CharField(source='author', read_only=True)
-    owner_descr = serializers.CharField(source='owner', read_only=True)
-    
+        
+class TaskSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = Task
         read_only_fields = ('author', 'project') 
         
     def save_object(self, task, *args, **kwargs):
         task.save_revision(self.context['request'].user, task.description, *args, **kwargs) #TODO: add interesting commit message!
+        
+
 
 
 class SerializerMethodFieldArgs(serializers.Field):
@@ -184,19 +185,10 @@ class VersionSerializer(serializers.Serializer):
         return ver
         
         
-class CommentSerializer(GenericForeignKeyMixin, serializers.HyperlinkedModelSerializer):
-    id = serializers.IntegerField(read_only=True)
-    #content_object_descr = serializers.CharField(source='content_object', read_only=True)
-    #content_object = SerializerMethodFieldArgs('get_related_object_url', 'content_object')  
-    
-    author_descr = serializers.CharField(source='author', read_only=True)
-    author = SerializerMethodFieldArgs('get_related_object_url', 'author')
-    
+class CommentSerializer(GenericForeignKeyMixin, ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = Comment
-        #fields = ('comment',)
         exclude = ('content_type', 'object_pk', )
-        write_only_fields = ('comment',) 
         
     def get_parent_object(self, instance=None):
         if instance:

@@ -44,6 +44,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'rest_framework.authtoken',
     'django_project',
+    'smart_selects',
 )
 
 MIDDLEWARE_CLASSES = (
