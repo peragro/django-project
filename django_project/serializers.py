@@ -9,9 +9,43 @@ from rest_framework.relations import HyperlinkedRelatedField
 from notifications.models import Notification
 from follow.models import Follow
 
-from django_project.models import Project, Task, Milestone, Component, Comment
+from django_project.models import Project, Task, Milestone, Component, Comment, ObjectTask
 from django_project import models
 
+
+class SerializerMethodFieldArgs(serializers.Field):
+    """
+    A field that gets its value by calling a method on the serializer it's attached to.
+    """
+    def __init__(self, method_name, *args):
+        self.method_name = method_name
+        self.args = args
+        super(SerializerMethodFieldArgs, self).__init__()
+
+    def field_to_native(self, obj, field_name):
+        value = getattr(self.parent, self.method_name)(obj, *self.args)
+        return self.to_native(value)
+        
+
+class GenericForeignKeyMixin(object):
+    def get_related_object_url(self, obj, field):
+        try:
+            obj = getattr(obj, field)
+            default_view_name = '%(model_name)s-detail'
+            
+            format_kwargs = {
+                'app_label': obj._meta.app_label,
+                'model_name': obj._meta.object_name.lower()
+            }
+            view_name = default_view_name % format_kwargs
+            print('get_related_object_url::view_name', view_name)
+            s = serializers.HyperlinkedIdentityField(source=obj, view_name=view_name)
+            s.initialize(self, None)
+            return s.field_to_native(obj, None)
+        except Exception as e:
+            print(e)
+            return ''
+            
 
 class ExtendedHyperlinkedModelSerializer(serializers.HyperlinkedModelSerializer):
     def to_native(self, obj):
@@ -25,7 +59,7 @@ class ExtendedHyperlinkedModelSerializer(serializers.HyperlinkedModelSerializer)
                         res[field_name+"_id"] = obj.serializable_value(field_name)
                         res[field_name+"_descr"] = str(getattr(obj, field_name))
         return res
-
+        
 
 class FollowSerializerMixin(object):
     def to_native(self, obj):
@@ -33,6 +67,8 @@ class FollowSerializerMixin(object):
         if obj and 'request' in self.context:
             ret['is_following'] = Follow.objects.is_following(self.context['request'].user, obj)
         return ret
+
+
 
 
 class FollowSerializer(serializers.Serializer):
@@ -101,8 +137,13 @@ class PrioritySerializer(ExtendedHyperlinkedModelSerializer):
 class StatusSerializer(ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = models.Status
+
         
-        
+class ObjectTaskSerializer(GenericForeignKeyMixin, serializers.Serializer):
+    content_object = SerializerMethodFieldArgs('get_related_object_url', 'content_object')
+    content_object_descr = serializers.CharField(source='content_object', read_only=True)
+            
+               
 class TaskSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = Task
@@ -111,43 +152,7 @@ class TaskSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerializer):
     def save_object(self, task, *args, **kwargs):
         task.save_revision(self.context['request'].user, task.description, *args, **kwargs) #TODO: add interesting commit message!
         
-
-
-
-class SerializerMethodFieldArgs(serializers.Field):
-    """
-    A field that gets its value by calling a method on the serializer it's attached to.
-    """
-    def __init__(self, method_name, *args):
-        self.method_name = method_name
-        self.args = args
-        super(SerializerMethodFieldArgs, self).__init__()
-
-    def field_to_native(self, obj, field_name):
-        value = getattr(self.parent, self.method_name)(obj, *self.args)
-        return self.to_native(value)
-        
-
-class GenericForeignKeyMixin(object):
-    def get_related_object_url(self, obj, field):
-        try:
-            obj = getattr(obj, field)
-            default_view_name = '%(model_name)s-detail'
-            
-            format_kwargs = {
-                'app_label': obj._meta.app_label,
-                'model_name': obj._meta.object_name.lower()
-            }
-            view_name = default_view_name % format_kwargs
-            print('get_related_object_url::view_name', view_name)
-            s = serializers.HyperlinkedIdentityField(source=obj, view_name=view_name)
-            s.initialize(self, None)
-            return s.field_to_native(obj, None)
-        except Exception as e:
-            print(e)
-            return ''
-
-
+    
 class NotificationSerializer(GenericForeignKeyMixin, serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     level = serializers.CharField()

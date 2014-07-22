@@ -63,7 +63,16 @@ class FollowingModelViewSet(MetaDataModelViewSet):
             methods.append({'url': path+'activity/', 'methods': ['GET']})
 
             return methods
+    
+    def metadata_filtering(self, request):   
+        return {'is_following': {'searches': 'exact'}}
         
+    def get_queryset(self):
+        qs = super(FollowingModelViewSet, self).get_queryset()
+        if self.request.QUERY_PARAMS.get('is_following', '').lower() == 'true':
+            qs = qs.filter(**{'follow_%s__user'%qs.model._meta.model_name: self.request.user})
+        return qs
+                
     @action(methods=['POST', 'DELETE'], permission_classes=[IsAuthenticated])
     def follow(self, request, pk, **kwargs):  
         obj = self.queryset.get(id=int(pk))
@@ -143,7 +152,7 @@ class FilteredModelViewSetMixin(object):
             if hasattr(self, 'filter_class') and hasattr(self.filter_class.Meta, 'order_by'):
                 ret['ordering'] = {'order_by_field': f.order_by_field, 'choices': f.ordering_field.choices}
             if len(f.filters):
-                ret['filtering'] = {}
+                ret['filtering'] = ret.get('filtering', {})
                 for name, field in f.filters.items():
                     if 'queryset' in field.extra:
                         ret['filtering'][name] = {'values': [(opt.id, str(opt)) for opt in field.extra['queryset']]}
@@ -315,7 +324,15 @@ class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelV
         serializer = paginate_data(self, versions, serializers.VersionSerializer)
 
         return Response(serializer.data)
-        
+    
+    @link(permission_classes=[])
+    def objects(self, request, pk, **kwargs):
+        task = self.queryset.get(id=int(pk))
+        objects = task.objecttask_tasks.all()
+
+        serializer = paginate_data(self, objects, serializers.ObjectTaskSerializer)
+
+        return Response(serializer.data)    
 
 class CommentModelViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, viewsets.ModelViewSet):
     queryset = models.Comment.objects.all()
