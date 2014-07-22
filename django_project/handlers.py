@@ -14,6 +14,10 @@ def clean(instance):
     if len(values) != 1:
         raise ValidationError('You should only set a single target!')
 Follow.clean = clean
+def __unicode__(instance):
+    return str(instance.user)+' is following '+str(instance.target._meta.model_name)+' '+str(instance.target)
+Follow.__unicode__ = __unicode__
+
 
 def follow_handler(follower, followee, **kwargs):
     """

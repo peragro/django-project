@@ -134,6 +134,7 @@ class FilteredModelViewSetMixin(object):
     filter_backends = (filters.DjangoFilterBackend, filters.SearchFilter,)
     
     def metadata(self, request):
+        from django_filters import DateRangeFilter
         ret = super(FilteredModelViewSetMixin, self).metadata(request)
         if 'pk' not in self.kwargs:
             f = self.filter_class(request.GET, queryset=self.get_queryset())
@@ -146,6 +147,9 @@ class FilteredModelViewSetMixin(object):
                 for name, field in f.filters.items():
                     if 'queryset' in field.extra:
                         ret['filtering'][name] = {'values': [(opt.id, str(opt)) for opt in field.extra['queryset']]}
+                    elif isinstance(field, DateRangeFilter):
+                        print field.options
+                        ret['filtering'][name] = {'values': [(id, tup[0]) for id, tup in field.options.items()]}
                     else:
                         ret['filtering'][name] = {'searches': field.lookup_type}
 
@@ -153,7 +157,7 @@ class FilteredModelViewSetMixin(object):
         
 #-----------------------------------------------------------------------        
 
-class UserViewSet(FollowingModelViewSet):
+class UserViewSet(NestedViewSetMixin, FollowingModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
@@ -209,7 +213,7 @@ class ProjectViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingMod
         return user.id != obj.author.id
 
 
-class MilestoneModelViewSet(viewsets.ModelViewSet):
+class MilestoneModelViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
     queryset = models.Milestone.objects.all()
     serializer_class = serializers.MilestoneSerializer
 

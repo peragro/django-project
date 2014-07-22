@@ -78,6 +78,7 @@ class ProjectSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerialize
     members = ProjectMemberSerializer(many=True)
     class Meta:
         model = Project
+        exclude = ('members', )
 
 
 class ComponentSerializer(ExtendedHyperlinkedModelSerializer):
