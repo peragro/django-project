@@ -21,8 +21,9 @@ class ExtendedHyperlinkedModelSerializer(serializers.HyperlinkedModelSerializer)
             res['id'] = obj.serializable_value('pk')
             for field_name, field in self.fields.items():
                 if isinstance(field , RelatedField):
-                    res[field_name+"_id"] = obj.serializable_value(field_name)
-                    res[field_name+"_descr"] = str(getattr(obj, field_name))
+                    if isinstance(obj.serializable_value(field_name), int):
+                        res[field_name+"_id"] = obj.serializable_value(field_name)
+                        res[field_name+"_descr"] = str(getattr(obj, field_name))
         return res
 
 
@@ -100,7 +101,7 @@ class PrioritySerializer(ExtendedHyperlinkedModelSerializer):
 class StatusSerializer(ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = models.Status
-
+        
         
 class TaskSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerializer):
     class Meta:
@@ -187,6 +188,9 @@ class VersionSerializer(serializers.Serializer):
         
         
 class CommentSerializer(GenericForeignKeyMixin, ExtendedHyperlinkedModelSerializer):
+    content_object = SerializerMethodFieldArgs('get_related_object_url', 'content_object')
+    content_object_descr = serializers.CharField(source='content_object', read_only=True)
+    
     class Meta:
         model = Comment
         exclude = ('content_type', 'object_pk', )

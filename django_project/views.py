@@ -213,9 +213,10 @@ class ProjectViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingMod
         return user.id != obj.author.id
 
 
-class MilestoneModelViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
+class MilestoneModelViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, viewsets.ModelViewSet):
     queryset = models.Milestone.objects.all()
     serializer_class = serializers.MilestoneSerializer
+    filter_class = dp_filters.MilestoneFilter
 
 
 class ComponentViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
@@ -265,7 +266,7 @@ class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelV
         obj.author = self.request.user
         #TODO: validate this is a nested view when saving
         if not hasattr(obj, 'project') or not obj.project:
-            project_pk = self.kwargs['project_pk']
+            project_pk = self.kwargs['parent_lookup_project']
             obj.project = models.Project.objects.get(id=int(project_pk))
         
     def metadata_methods(self, request):
@@ -304,7 +305,6 @@ class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelV
                         #We're going to create a task, so only return intial statuses.
                         qs = getattr(models, model).objects.filter(project_id=int(project_pk), is_initial=True)
                     data[field] = getattr(serializers, model+'Serializer')(qs, many=True, context={'request': request}).data
-                
                 return data
     
     @link(permission_classes=[])

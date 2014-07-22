@@ -2,17 +2,30 @@ import django_filters
 
 from django_project import models
 
+
 from datetime import timedelta
 from django.utils.timezone import now
-from django.utils.translation import ugettext_lazy as _
 from django_filters.filters import _truncate
-class ExtendedDateRangeFilter(django_filters.DateRangeFilter):
+from django_filters.filters import Filter
+class ExtendedDateRangeFilter(Filter):
     def __init__(self, *args, **kwargs):
-        self.options[5] = (_('Next 7 days'), lambda qs, name: qs.filter(**{
-            '%s__gte' % name: _truncate(now() + timedelta(days=1)),
-            '%s__lt' % name: _truncate(now() + timedelta(days=7)),
-        }))
         super(ExtendedDateRangeFilter, self).__init__(*args, **kwargs)
+
+    def filter(self, qs, value):
+        try:
+            value = int(value)
+        except (ValueError, TypeError):
+            value = 0
+        if value >= 0:
+            return qs.filter(**{
+                '%s__gte' % self.name: _truncate(now() + timedelta(days=1)),
+                '%s__lt' % self.name: _truncate(now() + timedelta(days=value)),
+                })
+        else:
+            return qs.filter(**{
+                '%s__gte' % self.name: _truncate(now() - timedelta(days=-value)),
+                '%s__lt' % self.name: _truncate(now() + timedelta(days=1)),
+                })
 
         
 class TaskFilter(django_filters.FilterSet):
@@ -53,3 +66,8 @@ class CommentFilter(django_filters.FilterSet):
                         ('submit_date', 'Date'),
                         ('-submit_date', 'Date'),
                     )
+
+class MilestoneFilter(django_filters.FilterSet):
+    deadline = ExtendedDateRangeFilter()
+    class Meta:
+        model = models.Milestone
