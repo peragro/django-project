@@ -6,7 +6,6 @@ from django.core.urlresolvers import resolve
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework.decorators import action, link
 from rest_framework import status
 from rest_framework import filters
 
@@ -17,6 +16,7 @@ from notifications.models import Notification
 from follow.models import Follow
 import follow
 
+from rest_framework_extensions.decorators import action, link
 from rest_framework_extensions.mixins import NestedViewSetMixin
 
 from django_project import serializers
@@ -69,7 +69,7 @@ class FollowingModelViewSet(MetaDataModelViewSet):
         
     def get_queryset(self):
         qs = super(FollowingModelViewSet, self).get_queryset()
-        if self.request.QUERY_PARAMS.get('is_following', '').lower() == 'true':
+        if self.request.QUERY_PARAMS.get('is_following', '').lower() == 'true' and self.request.user.is_authenticated():
             qs = qs.filter(**{'follow_%s__user'%qs.model._meta.model_name: self.request.user})
         return qs
                 
@@ -163,7 +163,20 @@ class FilteredModelViewSetMixin(object):
                         ret['filtering'][name] = {'searches': field.lookup_type}
 
         return ret
-        
+
+
+class StatisticsViewSetMixin(object): 
+    @link(is_for_list=True)
+    def statistics(self, request, **kwargs):
+        from datetime import datetime
+        qs = self.get_queryset()
+        ret = {}
+        ret['Total'] = qs.count()
+        ret['Todo'] = qs.exclude(deadline__lt=datetime.now()).exclude(owner=None).exclude(status__is_resolved=True).count()
+        ret['Past Due'] = qs.filter(deadline__lt=datetime.now()).count()
+        ret['Unassigned'] = qs.filter(owner=None).count()
+        ret['Complete'] = qs.filter(status__is_resolved=True).count()
+        return Response(ret)       
 #-----------------------------------------------------------------------        
 
 class UserViewSet(NestedViewSetMixin, FollowingModelViewSet):
@@ -260,7 +273,7 @@ class StatusViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
     serializer_class = serializers.StatusSerializer    
 
 
-class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelViewSet):
+class TaskViewSet(StatisticsViewSetMixin, NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """

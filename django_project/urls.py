@@ -3,9 +3,9 @@ from django_project import views
 
 from rest_framework_nested import routers
 
-from rest_framework_extensions.routers import ExtendedSimpleRouter
+from rest_framework_extensions.routers import ExtendedDefaultRouter
 
-router = ExtendedSimpleRouter()
+router = ExtendedDefaultRouter()
 projects_router = router.register(r'projects', views.ProjectViewSet)
 router.register(r'components', views.ComponentViewSet)
 tasks_router = router.register(r'tasks', views.TaskViewSet)
@@ -38,7 +38,7 @@ tasks_router.register(r'comments', views.nested_viewset_with_genericfk(views.Tas
 urlpatterns = patterns('',
     url(r'^user/$', views.CurrentUserDetail.as_view()),
     
-    url(r'^', include(router.urls)),
+    #url(r'^', include(router.urls)),
     
     url(r'^chaining/', include('smart_selects.urls')),
 )
