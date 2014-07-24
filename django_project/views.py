@@ -163,20 +163,7 @@ class FilteredModelViewSetMixin(object):
                         ret['filtering'][name] = {'searches': field.lookup_type}
 
         return ret
-
-
-class StatisticsViewSetMixin(object): 
-    @link(is_for_list=True)
-    def statistics(self, request, **kwargs):
-        from datetime import datetime
-        qs = self.get_queryset()
-        ret = {}
-        ret['Total'] = qs.count()
-        ret['Todo'] = qs.exclude(deadline__lt=datetime.now()).exclude(owner=None).exclude(status__is_resolved=True).count()
-        ret['Past Due'] = qs.filter(deadline__lt=datetime.now()).count()
-        ret['Unassigned'] = qs.filter(owner=None).count()
-        ret['Complete'] = qs.filter(status__is_resolved=True).count()
-        return Response(ret)       
+        
 #-----------------------------------------------------------------------        
 
 class UserViewSet(NestedViewSetMixin, FollowingModelViewSet):
@@ -239,6 +226,18 @@ class MilestoneModelViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, views
     queryset = models.Milestone.objects.all()
     serializer_class = serializers.MilestoneSerializer
     filter_class = dp_filters.MilestoneFilter
+    
+    @link(is_for_list=True)
+    def statistics(self, request, **kwargs):
+        from datetime import datetime
+        qs = self.get_queryset()
+        ret = {}
+        ret['Total'] = qs.count()
+        ret['Todo'] = qs.exclude(deadline__lt=datetime.now()).exclude(task__owner=None).exclude(date_completed__lt=datetime.now()).count()
+        ret['Past Due'] = qs.filter(deadline__lt=datetime.now()).count()
+        ret['Unassigned'] = qs.filter(task__owner=None).count()
+        ret['Complete'] = qs.filter(date_completed__lt=datetime.now()).count()
+        return Response(ret) 
 
 
 class ComponentViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
@@ -273,7 +272,7 @@ class StatusViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
     serializer_class = serializers.StatusSerializer    
 
 
-class TaskViewSet(StatisticsViewSetMixin, NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelViewSet):
+class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
@@ -347,6 +346,19 @@ class TaskViewSet(StatisticsViewSetMixin, NestedViewSetMixin, FilteredModelViewS
 
         return Response(serializer.data)    
 
+    @link(is_for_list=True)
+    def statistics(self, request, **kwargs):
+        from datetime import datetime
+        qs = self.get_queryset()
+        ret = {}
+        ret['Total'] = qs.count()
+        ret['Todo'] = qs.exclude(deadline__lt=datetime.now()).exclude(owner=None).exclude(status__is_resolved=True).count()
+        ret['Past Due'] = qs.filter(deadline__lt=datetime.now()).count()
+        ret['Unassigned'] = qs.filter(owner=None).count()
+        ret['Complete'] = qs.filter(status__is_resolved=True).count()
+        return Response(ret) 
+        
+        
 class CommentModelViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, viewsets.ModelViewSet):
     queryset = models.Comment.objects.all()
     serializer_class = serializers.CommentSerializer
