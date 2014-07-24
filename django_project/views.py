@@ -222,7 +222,7 @@ class ProjectViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingMod
         return user.id != obj.author.id
 
 
-class MilestoneModelViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, viewsets.ModelViewSet):
+class MilestoneModelViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelViewSet):
     queryset = models.Milestone.objects.all()
     serializer_class = serializers.MilestoneSerializer
     filter_class = dp_filters.MilestoneFilter
