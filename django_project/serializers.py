@@ -178,17 +178,30 @@ class NotificationSerializer(GenericForeignKeyMixin, serializers.Serializer):
 
 
 
-
+class RelatedSerializer(serializers.Serializer):
+    def to_native(self, version):
+        ver = {}
+        ver['id'] = version.id
+        #ver['dir'] = dir(version)
+        ver['object'] = version.field_dict
+        #ver['object_version'] = version.object_version
+        return ver
 
 class VersionSerializer(serializers.Serializer):
     def to_native(self, version):
         ver = {}
+        ver['id'] = version.id
         ver['revision'] = {}
         ver['revision']['comment'] = version.revision.comment
-        ver['revision']['editor'] = version.revision.user.username
+        if version.revision.user:
+            ver['revision']['editor'] = version.revision.user.username
+        else:
+            ver['revision']['editor'] = 'Anonymous'
         ver['revision']['revision_id'] = version.revision_id
+        ver['revision']['related'] = RelatedSerializer(version.revision.version_set.exclude(pk=version.pk).all(), many=True).data
         ver['revision']['date_created'] = version.revision.date_created
         ver['object'] = version.field_dict
+        ver['m2m_data'] = version.object_version.m2m_data
         return ver
         
         
