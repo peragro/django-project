@@ -11,7 +11,7 @@ config = {
     'author_email': 'No, thanks',
     'version': '0.1',
     'test_suite': 'tests.suite',
-    'install_requires': ['django-autoslug', 'django-reversion', 'south', 'pytz', 'django-notifications-hq', 'django-follow', 'django-filter', 'drf-nested-routers', 'django-cors-headers', 'django-smart-selects'],
+    'install_requires': ['django== 1.6.7', 'djangorestframework', 'django-autoslug', 'django-reversion', 'south', 'pytz', 'django-notifications-hq', 'django-follow', 'django-filter', 'drf-extensions', 'django-cors-headers', 'django-smart-selects'],
     'test_requires': [],
     'packages': ['django_project'],
     'scripts': [],

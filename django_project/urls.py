@@ -1,8 +1,6 @@
 from django.conf.urls import patterns, url, include
 from django_project import views
 
-from rest_framework_nested import routers
-
 from rest_framework_extensions.routers import ExtendedDefaultRouter
 
 router = ExtendedDefaultRouter()
