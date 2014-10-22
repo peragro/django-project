@@ -72,16 +72,18 @@ class ExtendedHyperlinkedModelSerializer(serializers.HyperlinkedModelSerializer)
             for field_name, field in self.fields.items():
                 if isinstance(field , HyperlinkedRelatedMethod):
                   serializable_value = obj.serializable_value(field_name)()
-                  res[field_name+"_id"] = serializable_value.pk if serializable_value else None
-                  res[field_name+"_descr"] = str(serializable_value) if serializable_value else None
+                  res[field_name] = {'url': res[field_name]}
+                  res[field_name]["id"] = serializable_value.pk if serializable_value else None
+                  res[field_name]["descr"] = str(serializable_value) if serializable_value else None
                 elif isinstance(field , RelatedField):
                     serializable_value = obj.serializable_value(field_name)
+                    res[field_name] = {'url': res[field_name]}
                     if isinstance(serializable_value, int):
-                        res[field_name+"_id"] = obj.serializable_value(field_name)
-                        res[field_name+"_descr"] = str(getattr(obj, field_name))
+                        res[field_name]["id"] = obj.serializable_value(field_name)
+                        res[field_name]["descr"] = str(getattr(obj, field_name))
                     elif serializable_value == None:
-                        res[field_name+"_id"] = None
-                        res[field_name+"_descr"] = None
+                        res[field_name]["id"] = None
+                        res[field_name]["descr"] = None
                 else:
                   print field_name, field.__class__
         return res
@@ -171,6 +173,7 @@ class ObjectTaskSerializer(GenericForeignKeyMixin, serializers.Serializer):
 
 
 class TaskSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerializer):
+    objecttask_tasks = ObjectTaskSerializer(many=True, read_only=True)
     class Meta:
         model = Task
         read_only_fields = ('author', 'project')
