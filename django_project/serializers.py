@@ -141,9 +141,16 @@ class ProjectMemberSerializer(ExtendedHyperlinkedModelSerializer):
 
 class ProjectSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerializer):
     members = ProjectMemberSerializer(many=True)
+    author = serializers.PrimaryKeyRelatedField(required=False, read_only=False)
     class Meta:
         model = Project
         exclude = ('members', )
+
+    def validate_author(self, attrs, source):
+        if attrs[source] is None:
+            attrs[source] = self.context['request'].user
+
+        return attrs
 
 
 class ComponentSerializer(ExtendedHyperlinkedModelSerializer):
@@ -215,6 +222,7 @@ class RelatedSerializer(serializers.Serializer):
         ver['object'] = version.field_dict
         #ver['object_version'] = version.object_version
         return ver
+
 
 class VersionSerializer(serializers.Serializer):
     def to_native(self, version):
