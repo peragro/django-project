@@ -20,7 +20,7 @@ class Project(ProjectMixin, models.Model):
     slug = AutoSlugField(max_length=128, populate_from='name', unique_with='author')
 
     description = models.TextField(null=True, blank=True)
-    
+
     author = models.ForeignKey(User, name=_('author'), related_name='created_projects')
 
     members = models.ManyToManyField(User, verbose_name=_('members'), through="Membership")
