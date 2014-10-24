@@ -147,7 +147,7 @@ class ProjectSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerialize
         exclude = ('members', )
 
     def validate_author(self, attrs, source):
-        if attrs[source] is None:
+        if attrs[source] is None and self.context['request'].user.is_authenticated():
             attrs[source] = self.context['request'].user
 
         return attrs
