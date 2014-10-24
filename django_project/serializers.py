@@ -148,7 +148,7 @@ class ProjectSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerialize
 
     def validate_author(self, attrs, source):
         if attrs[source] is None:
-            if self.context['request'].user.is_authenticated()
+            if self.context['request'].user.is_authenticated():
                 attrs[source] = self.context['request'].user
             else:
                 raise serializers.ValidationError("you need to be logged in")
