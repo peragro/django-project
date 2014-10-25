@@ -251,7 +251,7 @@ class Task(TaskMixin, models.Model):
     created_at = models.DateTimeField(_('created at'), auto_now_add=True, editable=False)
 
     def __unicode__(self):
-        return u'Task:%s' % (self.summary)
+        return u'%s' % (self.summary)
 
 
 from django.conf import settings

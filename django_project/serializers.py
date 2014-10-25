@@ -71,10 +71,13 @@ class ExtendedHyperlinkedModelSerializer(serializers.HyperlinkedModelSerializer)
             res['id'] = obj.serializable_value('pk')
             for field_name, field in self.fields.items():
                 if isinstance(field , HyperlinkedRelatedMethod):
-                  serializable_value = obj.serializable_value(field_name)()
-                  res[field_name] = {'url': res[field_name]}
-                  res[field_name]["id"] = serializable_value.pk if serializable_value else None
-                  res[field_name]["descr"] = str(serializable_value) if serializable_value else None
+                    serializable_value = getattr(obj, field_name)#obj.serializable_value(field_name)()
+                    if callable(serializable_value):
+                        serializable_value = serializable_value()
+                    res[field_name] = {'url': res[field_name]}
+                    res[field_name]["id"] = serializable_value.pk if serializable_value else None
+                    res[field_name]["descr"] = str(serializable_value) if serializable_value else None
+                    res[field_name]["type"] = str(serializable_value.__class__.__name__) if serializable_value else None
                 elif isinstance(field , RelatedField):
                     serializable_value = obj.serializable_value(field_name)
                     res[field_name] = {'url': res[field_name]}
@@ -192,28 +195,29 @@ class TaskSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerializer):
         task.save_revision(self.context['request'].user, task.description, *args, **kwargs) #TODO: add interesting commit message!
 
 
-class NotificationSerializer(GenericForeignKeyMixin, serializers.Serializer):
+class NotificationSerializer(GenericForeignKeyMixin, ExtendedHyperlinkedModelSerializer):
     id = serializers.IntegerField(read_only=True)
     level = serializers.CharField()
 
-    recipient_descr = serializers.CharField(source='recipient', read_only=True)
-    recipient = SerializerMethodFieldArgs('get_related_object_url', 'recipient')
-
-    actor_descr = serializers.CharField(source='actor', read_only=True)
-    actor = SerializerMethodFieldArgs('get_related_object_url', 'actor')
+    recipient = HyperlinkedRelatedMethod()
+    actor = HyperlinkedRelatedMethod()
 
     verb = serializers.CharField()
     description = serializers.CharField()
 
-    target_descr = serializers.CharField(source='target', read_only=True)
-    target = SerializerMethodFieldArgs('get_related_object_url', 'target')
+    target = HyperlinkedRelatedMethod()
 
-    action_object_descr = serializers.CharField(source='action_object', read_only=True)
-    action_object = SerializerMethodFieldArgs('get_related_object_url', 'action_object')
+    action_object = HyperlinkedRelatedMethod()
 
     timesince = serializers.CharField()
 
     __str__ = serializers.CharField()
+
+    class Meta:
+        model = Notification
+
+    def get_default_fields(self):
+        return {}
 
 
 

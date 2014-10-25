@@ -32,7 +32,7 @@ class MetaDataModelViewSet(viewsets.ModelViewSet):
     """
     def metadata(self, request):
         ret = super(MetaDataModelViewSet, self).metadata(request)
-        
+
         mros = type(self).mro() # Get the Inheritance tree
         for mro in mros:
             for method in mro.__dict__: # Only iterate non-inherted class methods
@@ -53,35 +53,35 @@ class MetaDataModelViewSet(viewsets.ModelViewSet):
 
 class FollowingModelViewSet(MetaDataModelViewSet):
     def metadata_methods(self, request):
-        print('FollowingModelViewSet::metadata_methods', self.kwargs) 
+        print('FollowingModelViewSet::metadata_methods', self.kwargs)
         if has_instance_key(self.kwargs):
             path = request._request.path
             methods = []
-            
+
             methods.append({'url': path+'follow/', 'methods': ['POST', 'DELETE']})
             methods.append({'url': path+'followers/', 'methods': ['GET']})
             methods.append({'url': path+'activity/', 'methods': ['GET']})
 
             return methods
-    
-    def metadata_filtering(self, request):   
+
+    def metadata_filtering(self, request):
         return {'is_following': {'searches': 'exact'}}
-        
+
     def get_queryset(self):
         qs = super(FollowingModelViewSet, self).get_queryset()
         if self.request.QUERY_PARAMS.get('is_following', '').lower() == 'true' and self.request.user.is_authenticated():
             qs = qs.filter(**{'follow_%s__user'%qs.model._meta.model_name: self.request.user})
         return qs
-                
+
     @action(methods=['POST', 'DELETE'], permission_classes=[IsAuthenticated])
-    def follow(self, request, pk, **kwargs):  
+    def follow(self, request, pk, **kwargs):
         obj = self.queryset.get(id=int(pk))
-        
+
         #follow, created = Follow.objects.get_or_create(request.user, obj)
         can_change_follow = True
         if hasattr(self, 'can_change_follow'):
             can_change_follow = self.can_change_follow(request.user, obj)
-        
+
         if can_change_follow:
             if request.method == 'DELETE':
                 if Follow.objects.is_following(request.user, obj):
@@ -95,36 +95,36 @@ class FollowingModelViewSet(MetaDataModelViewSet):
                 return Response(status=status.HTTP_201_CREATED)
         else:
             return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-            
-    
+
+
     @link()
-    def followers(self, request, pk, **kwargs):    
+    def followers(self, request, pk, **kwargs):
         obj = self.queryset.get(id=int(pk))
-        
+
         users = User.objects.filter(id__in=Follow.objects.get_follows(obj).values_list('user'))
-        
+
         serializer = paginate_data(self, users, serializers.UserSerializer)
 
         return Response(serializer.data)
-        
+
     @link()
     def activity(self, request, pk, **kwargs):
         print("FollowingModelViewSet: ", pk)
         obj = self.queryset.get(id=int(pk))
-        
+
         kwargs = {}
         kwargs['public'] = True
-        if self.notifications_field=='recipient': 
+        if self.notifications_field=='recipient':
             kwargs['recipient'] = obj
         else:
             kwargs[self.notifications_field+'_content_type'] = ContentType.objects.get_for_model(obj)
             kwargs[self.notifications_field+'_object_id'] = obj.id
-            
+
         if self.notifications_field=='target':
             kwargs['recipient'] = obj.author
-        
+
         notifications = Notification.objects.filter(**kwargs)
-        
+
         serializer = paginate_data(self, notifications, serializers.NotificationSerializer)
 
         return Response(serializer.data)
@@ -141,7 +141,7 @@ def nested_viewset_with_genericfk(parent_viewset, viewset):
 
 class FilteredModelViewSetMixin(object):
     filter_backends = (filters.DjangoFilterBackend, filters.SearchFilter,)
-    
+
     def metadata(self, request):
         from django_filters import DateRangeFilter
         ret = super(FilteredModelViewSetMixin, self).metadata(request)
@@ -163,8 +163,8 @@ class FilteredModelViewSetMixin(object):
                         ret['filtering'][name] = {'searches': field.lookup_type}
 
         return ret
-        
-#-----------------------------------------------------------------------        
+
+#-----------------------------------------------------------------------
 
 class UserViewSet(NestedViewSetMixin, FollowingModelViewSet):
     """
@@ -173,18 +173,18 @@ class UserViewSet(NestedViewSetMixin, FollowingModelViewSet):
     queryset = User.objects.all()
     serializer_class = serializers.UserSerializer
     notifications_field = 'recipient'
-    
+
     def can_change_follow(self, user, obj):
         # Don't allow users to follow themselfs
         return user.id != obj.id
-        
+
     @link(permission_classes=[])
     def following(self, request, pk):
         obj = self.queryset.get(id=int(pk))
-        
+
         results = Follow.objects.filter(user=obj)
         serializer = paginate_data(self, results, serializers.FollowSerializer)
-        
+
         return Response(serializer.data)
 
 
@@ -193,7 +193,7 @@ class CurrentUserDetail(APIView):
     Retrieve the current User
     """
     permission_classes = (IsAuthenticated,)
-    
+
     def get(self, request, format=None):
         serializer = serializers.UserSerializer(request.user)
         return Response(serializer.data)
@@ -216,17 +216,29 @@ class ProjectViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingMod
     notifications_field = 'target'
     filter_class = dp_filters.ProjectFilter
     search_fields = ('author__username', 'name')
-    
+
     def can_change_follow(self, user, obj):
         # Don't allow project owners to unfollow the project
         return user.id != obj.author.id
+
+    @link(is_for_list=True)
+    def statistics(self, request, **kwargs):
+        from datetime import datetime
+        qs = self.get_queryset()
+        print list(qs)
+        ret = {}
+        ret['Total'] = qs.count()
+        ret['Todo'] = qs.exclude(task__status__is_resolved=True).count()
+        ret['Past Due'] = qs.filter(task__deadline__lt=datetime.now()).values_list('pk', flat=True).distinct().count()
+        ret['Complete'] = qs.filter(task__status__is_resolved=True).count()
+        return Response(ret)
 
 
 class MilestoneModelViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelViewSet):
     queryset = models.Milestone.objects.all()
     serializer_class = serializers.MilestoneSerializer
     filter_class = dp_filters.MilestoneFilter
-    
+
     @link(is_for_list=True)
     def statistics(self, request, **kwargs):
         from datetime import datetime
@@ -237,7 +249,7 @@ class MilestoneModelViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, Follo
         ret['Past Due'] = qs.filter(deadline__lt=datetime.now()).count()
         ret['Unassigned'] = qs.filter(task__owner=None).count()
         ret['Complete'] = qs.filter(date_completed__lt=datetime.now()).count()
-        return Response(ret) 
+        return Response(ret)
 
 
 class ComponentViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
@@ -269,7 +281,7 @@ class StatusViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
     API endpoint that allows Statuses to be viewed or edited.
     """
     queryset = models.Status.objects.all()
-    serializer_class = serializers.StatusSerializer    
+    serializer_class = serializers.StatusSerializer
 
 
 class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelViewSet):
@@ -289,7 +301,7 @@ class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelV
         if not hasattr(obj, 'project') or not obj.project:
             project_pk = self.kwargs['parent_lookup_project']
             obj.project = models.Project.objects.get(id=int(project_pk))
-        
+
     def metadata_methods(self, request):
         print('TaskViewSet::metadata_methods')
         if has_instance_key(self.kwargs):
@@ -297,8 +309,8 @@ class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelV
             methods = []
             methods.append({'url': path+'revisions/', 'methods': ['GET']})
             return methods
-    
-    def metadata_options(self, request):    
+
+    def metadata_options(self, request):
         print('TaskViewSet::metadata_options')
         project_pk = None
         if has_primary_key(self.kwargs):
@@ -307,18 +319,18 @@ class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelV
         elif has_instance_key(self.kwargs):
             task = self.queryset.get(id=int(self.kwargs['pk']))
             project_pk = task.project.id
-            
+
             if project_pk:
-                data = {}   
+                data = {}
                 for model, field in [('Priority', 'priority'), ('TaskType', 'type'), ('Component', 'component'), ('Milestone', 'milestone')]:
                     qs = getattr(models, model).objects.filter(project_id=int(project_pk))
                     data[field] = getattr(serializers, model+'Serializer')(qs, many=True, context={'request': request}).data
                 for model, field in [('User', 'owner')]:
                     qs = getattr(models, model).objects.filter(membership__project_id=int(project_pk))
                     data[field] = getattr(serializers, model+'NameSerializer')(qs, many=True, context={'request': request}).data
-                    
+
                 for model, field in [('Status', 'status')]:
-                    if 'pk' in self.kwargs: 
+                    if 'pk' in self.kwargs:
                         #We're holding a task for editting. So only return allowed transitions.
                         task = self.queryset.get(id=int(self.kwargs['pk']))
                         qs = getattr(models, model).objects.filter(transition__source=task.status)
@@ -327,7 +339,7 @@ class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelV
                         qs = getattr(models, model).objects.filter(project_id=int(project_pk), is_initial=True)
                     data[field] = getattr(serializers, model+'Serializer')(qs, many=True, context={'request': request}).data
                 return data
-    
+
     @link(permission_classes=[])
     def revisions(self, request, pk, **kwargs):
         task = self.queryset.get(id=int(pk))
@@ -336,7 +348,7 @@ class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelV
         serializer = paginate_data(self, versions, serializers.VersionSerializer)
 
         return Response(serializer.data)
-    
+
     @link(permission_classes=[])
     def objects(self, request, pk, **kwargs):
         task = self.queryset.get(id=int(pk))
@@ -344,7 +356,7 @@ class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelV
 
         serializer = paginate_data(self, objects, serializers.ObjectTaskSerializer)
 
-        return Response(serializer.data)    
+        return Response(serializer.data)
 
     @link(is_for_list=True)
     def statistics(self, request, **kwargs):
@@ -356,9 +368,9 @@ class TaskViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingModelV
         ret['Past Due'] = qs.filter(deadline__lt=datetime.now()).count()
         ret['Unassigned'] = qs.filter(owner=None).count()
         ret['Complete'] = qs.filter(status__is_resolved=True).count()
-        return Response(ret) 
-        
-        
+        return Response(ret)
+
+
 class CommentModelViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, viewsets.ModelViewSet):
     queryset = models.Comment.objects.all()
     serializer_class = serializers.CommentSerializer
@@ -370,7 +382,7 @@ class NotificationModelViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Notification.objects.all()
     serializer_class = serializers.NotificationSerializer
 
-    
+
 
 def has_primary_key(kwargs):
     return (True in map(lambda x: x.endswith('_pk'), kwargs.keys()))
@@ -390,6 +402,5 @@ def paginate_data(self, data, serializer_class=None):
         context = self.get_serializer_context()
         return pagination_serializer_class(instance=page, context=context)
     else:
-        
+
         return PaginationSerializer(instance=page)
-        
