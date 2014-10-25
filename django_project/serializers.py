@@ -77,7 +77,7 @@ class ExtendedHyperlinkedModelSerializer(serializers.HyperlinkedModelSerializer)
                     res[field_name] = {'url': res[field_name]}
                     res[field_name]["id"] = serializable_value.pk if serializable_value else None
                     res[field_name]["descr"] = str(serializable_value) if serializable_value else None
-                    res[field_name]["type"] = str(serializable_value.__class__.__name__) if serializable_value else None
+                    res[field_name]["type"] = str(serializable_value.__class__.__name__).lower() if serializable_value else None
                 elif isinstance(field , RelatedField):
                     serializable_value = obj.serializable_value(field_name)
                     res[field_name] = {'url': res[field_name]}
