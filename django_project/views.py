@@ -150,7 +150,8 @@ class FilteredModelViewSetMixin(object):
             if hasattr(self, 'search_fields'):
                 ret['search'] = {'search_by_field': 'search', 'searches': self.search_fields}
             if hasattr(self, 'filter_class') and hasattr(self.filter_class.Meta, 'order_by'):
-                ret['ordering'] = {'order_by_field': f.order_by_field, 'choices': f.ordering_field.choices}
+                if f.ordering_field:
+                    ret['ordering'] = {'order_by_field': f.order_by_field, 'choices': f.ordering_field.choices}
             if len(f.filters):
                 ret['filtering'] = ret.get('filtering', {})
                 for name, field in f.filters.items():
