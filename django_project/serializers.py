@@ -131,7 +131,7 @@ class UserNameSerializer(ExtendedHyperlinkedModelSerializer):
         fields = ('id', 'url', 'name')
 
 
-class MilestoneSerializer(ExtendedHyperlinkedModelSerializer):
+class MilestoneSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = Milestone
 
