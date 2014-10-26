@@ -93,6 +93,7 @@ class Milestone(models.Model):
     description = models.TextField()
     author = models.ForeignKey(User, verbose_name=_('author'))
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
+    modified_at = models.DateTimeField(_('modified at'), auto_now=True)
     deadline = models.DateField(_('deadline'), default=datetime.date.today() + datetime.timedelta(days=10))
     date_completed = models.DateField(_('date completed'), null=True, blank=True)
 
