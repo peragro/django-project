@@ -307,7 +307,7 @@ class ObjectTask(models.Model):
         verbose_name_plural = _('objecttasks')
 
     def __str__(self):
-        return "%s for %s" % (self.task, self.content_object)
+        return "%s for %s" % (str(self.task), str(self.content_object))
 
 
 from follow import utils

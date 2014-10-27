@@ -1,6 +1,8 @@
 import os
 import urllib
 
+from django.db import transaction
+
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
 from rest_framework.reverse import reverse
@@ -38,6 +40,7 @@ class HyperlinkedRelatedMethod(RelatedField):
         super(HyperlinkedRelatedMethod, self).__init__()
 
     def field_to_native(self, obj, field_name):
+        self.parent.context = self.context
         value = GenericForeignKeyMixin.get_related_object_url(self.parent, obj, field_name)
         return self.to_native(value)
 
@@ -55,7 +58,7 @@ class GenericForeignKeyMixin(object):
                 'model_name': obj._meta.object_name.lower()
             }
             view_name = default_view_name % format_kwargs
-            print('*get_related_object_url::view_name', view_name)
+
             s = serializers.HyperlinkedIdentityField(source=obj, view_name=view_name)
             s.initialize(self, None)
             return s.field_to_native(obj, None)
@@ -78,7 +81,7 @@ class ExtendedHyperlinkedModelSerializer(serializers.HyperlinkedModelSerializer)
                     res[field_name]["id"] = serializable_value.pk if serializable_value else None
                     res[field_name]["descr"] = str(serializable_value) if serializable_value else None
                     res[field_name]["type"] = str(serializable_value.__class__.__name__).lower() if serializable_value else None
-                elif isinstance(field , RelatedField):
+                elif isinstance(field , RelatedField) and hasattr(field, 'attname'):
                     serializable_value = obj.serializable_value(field_name)
                     res[field_name] = {'url': res[field_name]}
                     if isinstance(serializable_value, int):
@@ -87,8 +90,8 @@ class ExtendedHyperlinkedModelSerializer(serializers.HyperlinkedModelSerializer)
                     elif serializable_value == None:
                         res[field_name]["id"] = None
                         res[field_name]["descr"] = None
-                else:
-                  print field_name, field.__class__
+                #else:
+                #  print field_name, field.__class__
         return res
 
 
@@ -134,6 +137,7 @@ class UserNameSerializer(ExtendedHyperlinkedModelSerializer):
 class MilestoneSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = Milestone
+        read_only_fields = ('project', 'slug', 'author', )
 
 
 class ProjectMemberSerializer(ExtendedHyperlinkedModelSerializer):
@@ -162,37 +166,70 @@ class ProjectSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerialize
 class ComponentSerializer(ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = Component
-        read_only_fields = ('project', )
+        read_only_fields = ('project', 'slug', )
 
 
 class TaskTypeSerializer(ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = models.TaskType
+        read_only_fields = ('project', )
 
 
 class PrioritySerializer(ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = models.Priority
+        read_only_fields = ('project', )
 
 
 class StatusSerializer(ExtendedHyperlinkedModelSerializer):
     class Meta:
         model = models.Status
+        read_only_fields = ('project', 'slug', )
 
 
-class ObjectTaskSerializer(GenericForeignKeyMixin, serializers.Serializer):
-    content_object = SerializerMethodFieldArgs('get_related_object_url', 'content_object')
-    content_object_descr = serializers.CharField(source='content_object', read_only=True)
+class ObjectTaskSerializer(GenericForeignKeyMixin, serializers.HyperlinkedRelatedField):
+    def to_native(self, obj):
+        ret = {}
+        ret['content_object'] = {}
+        ret['content_object']['url'] = self.get_related_object_url(obj, 'content_object')
+        ret['content_object']['descr'] = str(obj.content_object)
+        ret['content_object']['type'] = obj.content_object.__class__.__name__
+        return ret
+
+    def from_native(self, value):
+        from django.core.urlresolvers import resolve
+        from rest_framework.compat import urlparse
+
+        value = urlparse.urlparse(value).path
+        match = resolve(value)
+
+        content_object = match.func.cls.queryset.get(**match.kwargs)
+        return ObjectTask(content_object=content_object)
 
 
 class TaskSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerializer):
-    objecttask_tasks = ObjectTaskSerializer(many=True, read_only=True)
+    objecttask_tasks = ObjectTaskSerializer(many=True, read_only=False, view_name='filereference-detail')
     class Meta:
         model = Task
         read_only_fields = ('author', 'project')
 
+    def restore_object(self, attrs, instance=None):
+        objecttask_tasks = attrs['objecttask_tasks']
+        ret = super(TaskSerializer, self).restore_object(attrs, instance)
+
+        qs = ret.objecttask_tasks.all()
+        qs._result_cache = objecttask_tasks
+        qs._prefetch_done = True
+        ret._prefetched_objects_cache = {'objecttask_tasks': qs}
+
+        return ret
+
     def save_object(self, task, *args, **kwargs):
-        task.save_revision(self.context['request'].user, task.description, *args, **kwargs) #TODO: add interesting commit message!
+        with transaction.atomic():
+            task.save_revision(self.context['request'].user, task.description, *args, **kwargs) #TODO: add interesting commit message!
+            for ot in task.objecttask_tasks.all():
+                ot.task = task
+                ot.save()
 
 
 class NotificationSerializer(GenericForeignKeyMixin, ExtendedHyperlinkedModelSerializer):

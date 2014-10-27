@@ -17,7 +17,7 @@ from follow.models import Follow
 import follow
 
 from rest_framework_extensions.decorators import action, link
-from rest_framework_extensions.mixins import NestedViewSetMixin
+from rest_framework_extensions.mixins import NestedViewSetMixin as RFENestedViewSetMixin
 
 from django_project import serializers
 from django_project import models
@@ -137,6 +137,19 @@ def nested_viewset_with_genericfk(parent_viewset, viewset):
                 content_type=ContentType.objects.get_for_model(parent_viewset.queryset.model)
             )
     return Wrapper
+
+
+class NestedViewSetMixin(RFENestedViewSetMixin):
+    def pre_save(self, obj):
+        if self.request.user.is_authenticated():
+            obj.author = self.request.user
+        #TODO: validate this is a nested view when saving
+        if not hasattr(obj, 'project') or not obj.project:
+            if 'parent_lookup_project' in self.kwargs:
+                print '**NestedViewSetMixin:', self.kwargs, self.__class__.__name__
+                project_pk = self.kwargs['parent_lookup_project']
+                print '--NestedViewSetMixin: setting project to ', project_pk
+                obj.project = models.Project.objects.get(id=int(project_pk))
 
 
 class FilteredModelViewSetMixin(object):
