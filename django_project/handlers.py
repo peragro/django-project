@@ -23,22 +23,22 @@ def follow_handler(follower, followee, **kwargs):
     """
     """
     notify.send(follower,
-                recipient=follower, 
-                actor=follower, 
+                recipient=follower,
+                actor=follower,
                 verb='started following',
-                action_object=followee, 
-                description='', 
+                action_object=followee,
+                description='',
                 target=getattr(followee, 'project', None))
 
 def unfollow_handler(follower, followee, **kwargs):
     """
     """
     notify.send(follower,
-                recipient=follower, 
-                actor=follower, 
+                recipient=follower,
+                actor=follower,
                 verb='stopped following',
-                action_object=followee, 
-                description='', 
+                action_object=followee,
+                description='',
                 target=getattr(followee, 'project', None))
 
 # connect the signal
@@ -55,11 +55,11 @@ def workflow_task_handler_creator(verb):
         follow_obj = instance.project if verb=='created' else instance
         for follow in Follow.objects.get_follows(follow_obj):
             notify.send(instance.author,
-                        recipient=follow.user, 
-                        actor=instance.author, 
+                        recipient=follow.user,
+                        actor=instance.author,
                         verb=verb,
-                        action_object=instance, 
-                        description='', 
+                        action_object=instance,
+                        description='',
                         target=instance.project)
     if not hasattr(workflow_task_handler_creator, 'instances'):
         workflow_task_handler_creator.instances = []
@@ -68,7 +68,7 @@ def workflow_task_handler_creator(verb):
 
 def handler(instance, transition, old_state, new_state, **kwargs):
     print('workflow_task_handler_creator::handler22')
-        
+
 # connect the signal
 signals.workflow_task_new.connect(workflow_task_handler_creator('created'), dispatch_uid='django_project.handlers.workflow_task_new')
 signals.workflow_task_transition.connect(workflow_task_handler_creator('updated'), dispatch_uid='django_project.handlers.workflow_task_transition')
@@ -78,12 +78,23 @@ signals.workflow_task_resolved.connect(workflow_task_handler_creator('resolved')
 def commented_handler(instance, comment, **kwargs):
     for follow in Follow.objects.get_follows(instance):
         notify.send(instance.author,
-                    recipient=follow.user, 
-                    actor=instance.author, 
+                    recipient=follow.user,
+                    actor=instance.author,
                     verb='commented',
-                    action_object=comment, 
-                    description=comment.comment[:50]+'...', 
+                    action_object=comment,
+                    description=comment.comment[:50]+'...',
                     target=instance)
+
+    from django.contrib.contenttypes.models import ContentType
+    from django.contrib.admin.models import LogEntry, ADDITION
+    from django.utils.encoding import force_unicode
+    LogEntry.objects.log_action(
+        user_id         = instance.author.pk,
+        content_type_id = ContentType.objects.get_for_model(comment).pk,
+        object_id       = comment.pk,
+        object_repr     = force_unicode(comment),
+        action_flag     = ADDITION
+    )
 
 # connect the signal
 signals.commented.connect(commented_handler, dispatch_uid='django_project.handlers.commented_handler')

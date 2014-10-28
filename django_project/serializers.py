@@ -293,6 +293,7 @@ class CommentSerializer(GenericForeignKeyMixin, ExtendedHyperlinkedModelSerializ
     class Meta:
         model = Comment
         exclude = ('content_type', 'object_pk', )
+        read_only_fields = ('author',)
 
     def get_parent_object(self, instance=None):
         if instance:
