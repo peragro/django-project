@@ -323,3 +323,7 @@ utils.register(Task)
 
 # IMPORTANT LINE, really leave it there!
 from django_project import handlers
+
+# This was added so as to allow South to freeze this field and create new migration
+from south.modelsinspector import add_introspection_rules
+add_introspection_rules([], ["^django_project\.models\.ChainedForeignKeyTransition"])
