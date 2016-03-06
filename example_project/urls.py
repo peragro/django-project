@@ -19,7 +19,7 @@ urlpatterns = patterns('',
     
 )
 
-urlpatterns = patterns('',
+urlpatterns += patterns('',
     ('^inbox/notifications/', include(notifications.urls)),
     url(r'^toggle/(?P<app>[^\/]+)/(?P<model>[^\/]+)/(?P<id>\d+)/$', 'follow.views.toggle', name='toggle'),
     url(r'^toggle/(?P<app>[^\/]+)/(?P<model>[^\/]+)/(?P<id>\d+)/$', 'follow.views.toggle', name='follow'),
