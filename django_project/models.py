@@ -256,7 +256,7 @@ class Task(TaskMixin, models.Model):
 
 
 from django.conf import settings
-from django.contrib.contenttypes import generic
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django_project.managers import CommentManager
 from django.contrib.contenttypes.models import ContentType
 
@@ -271,7 +271,7 @@ class Comment(CommentMixin, models.Model):
             verbose_name=_('content type'),
             related_name="content_type_set_for_%(class)s")
     object_pk = models.TextField(_('object ID'))
-    content_object = generic.GenericForeignKey(ct_field="content_type", fk_field="object_pk")
+    content_object = GenericForeignKey(ct_field="content_type", fk_field="object_pk")
 
     comment = models.TextField(_('comment'), max_length=COMMENT_MAX_LENGTH)
 
@@ -300,7 +300,7 @@ class ObjectTask(models.Model):
             verbose_name=_('content type'),
             related_name="content_type_set_for_%(class)s")
     object_pk = models.TextField(_('object ID'))
-    content_object = generic.GenericForeignKey(ct_field="content_type", fk_field="object_pk")
+    content_object = GenericForeignKey(ct_field="content_type", fk_field="object_pk")
 
     class Meta:
         verbose_name = _('objecttask')
@@ -311,7 +311,7 @@ class ObjectTask(models.Model):
 
 
 from follow import utils
-import reversion
+from reversion import revisions as reversion
 
 reversion.register(Task)
 
