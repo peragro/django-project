@@ -159,7 +159,7 @@ class Status(OrderedDictModel):
     project = models.ForeignKey(Project)
     is_resolved = models.BooleanField(verbose_name=_('is resolved'), default=False)
     is_initial = models.BooleanField(verbose_name=_('is initial'), default=False)
-    destinations = models.ManyToManyField('self', verbose_name=_('destinations'), through='Transition', symmetrical=False, null=True, blank=True)
+    destinations = models.ManyToManyField('self', verbose_name=_('destinations'), through='Transition', symmetrical=False, blank=True)
     slug = AutoSlugField(max_length=64, populate_from='name', always_update=True, unique_with='project')
 
     objects = models.Manager()
