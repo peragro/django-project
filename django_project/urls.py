@@ -33,10 +33,10 @@ users_router.register(r'projects', views.ProjectViewSet, base_name='users-projec
 #tasks_router = routers.NestedSimpleRouter(router, r'tasks', lookup='CommentModelViewSet__content_object')
 tasks_router.register(r'comments', views.nested_viewset_with_genericfk(views.TaskViewSet, views.CommentModelViewSet), base_name='tasks-comment', parents_query_lookups=['object_pk'])
 
-urlpatterns = patterns('',
+urlpatterns = [
     url(r'^user/$', views.CurrentUserDetail.as_view()),
 
     #url(r'^', include(router.urls)),
 
     url(r'^chaining/', include('smart_selects.urls')),
-)
+]
