@@ -69,7 +69,7 @@ class FollowingModelViewSet(MetaDataModelViewSet):
 
     def get_queryset(self):
         qs = super(FollowingModelViewSet, self).get_queryset()
-        if self.request.QUERY_PARAMS.get('is_following', '').lower() == 'true' and self.request.user.is_authenticated():
+        if self.request.query_params.get('is_following', '').lower() == 'true' and self.request.user.is_authenticated():
             qs = qs.filter(**{'follow_%s__user'%qs.model._meta.model_name: self.request.user})
         return qs
 

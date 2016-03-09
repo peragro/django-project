@@ -1,7 +1,7 @@
 from django.db import models
 
 from django.db import transaction
-import reversion
+from reversion import revisions as reversion
 
 from follow.models import Follow
 

@@ -36,8 +36,8 @@ class HyperlinkedRelatedMethod(RelatedField):
     class A(GenericForeignKeyMixin):
       field = SerializerMethodFieldArgs('get_related_object_url', 'field')
     """
-    def __init__(self):
-        super(HyperlinkedRelatedMethod, self).__init__()
+    def __init__(self, **kwargs):
+        super(HyperlinkedRelatedMethod, self).__init__(**kwargs)
 
     def field_to_native(self, obj, field_name):
         self.parent.context = self.context
@@ -148,7 +148,9 @@ class ProjectMemberSerializer(ExtendedHyperlinkedModelSerializer):
 
 class ProjectSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerializer):
     members = ProjectMemberSerializer(many=True)
-    author = serializers.PrimaryKeyRelatedField(required=False, read_only=False)
+    author = serializers.PrimaryKeyRelatedField(required=False,
+    read_only=False,
+    queryset=User.objects.all())
     class Meta:
         model = Project
         exclude = ('members', )
@@ -208,7 +210,7 @@ class ObjectTaskSerializer(GenericForeignKeyMixin, serializers.HyperlinkedRelate
 
 
 class TaskSerializer(FollowSerializerMixin, ExtendedHyperlinkedModelSerializer):
-    objecttask_tasks = ObjectTaskSerializer(many=True, read_only=False, view_name='filereference-detail')
+    objecttask_tasks = ObjectTaskSerializer(many=True, read_only=False, view_name='filereference-detail', queryset=ObjectTask.objects.all())
     class Meta:
         model = Task
         read_only_fields = ('author', 'project')
@@ -236,15 +238,15 @@ class NotificationSerializer(GenericForeignKeyMixin, ExtendedHyperlinkedModelSer
     id = serializers.IntegerField(read_only=True)
     level = serializers.CharField()
 
-    recipient = HyperlinkedRelatedMethod()
-    actor = HyperlinkedRelatedMethod()
+    recipient = HyperlinkedRelatedMethod(read_only=True)
+    actor = HyperlinkedRelatedMethod(read_only=True)
 
     verb = serializers.CharField()
     description = serializers.CharField()
 
-    target = HyperlinkedRelatedMethod()
+    target = HyperlinkedRelatedMethod(read_only=True)
 
-    action_object = HyperlinkedRelatedMethod()
+    action_object = HyperlinkedRelatedMethod(read_only=True)
 
     timesince = serializers.CharField()
 
