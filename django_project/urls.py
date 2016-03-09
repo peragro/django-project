@@ -35,8 +35,8 @@ tasks_router.register(r'comments', views.nested_viewset_with_genericfk(views.Tas
 
 urlpatterns = patterns('',
     url(r'^user/$', views.CurrentUserDetail.as_view()),
-    
+
     #url(r'^', include(router.urls)),
-    
+
     url(r'^chaining/', include('smart_selects.urls')),
 )
