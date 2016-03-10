@@ -109,7 +109,7 @@ TEMPLATES = [
                 'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'debug': True,
         },
-        'DEBUG': True,
     },
 ]

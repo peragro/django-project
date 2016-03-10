@@ -1,17 +1,17 @@
 from django import template
 from django.contrib.auth.models import User, AnonymousUser, Group
 from django.core.urlresolvers import reverse
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from follow import signals, utils
 from follow.models import Follow
 from follow.utils import register
+import follow.urls
 
 register(User)
 register(Group)
 
 class FollowTest(TestCase):
-    urls = 'follow.urls'
-
+    @override_settings(ROOT_URLCONF=follow.urls)
     def setUp(self):
 
         self.lennon = User.objects.create(username='lennon')
@@ -64,14 +64,15 @@ class FollowTest(TestCase):
         self.assertEqual(2, result.count())
 
     def test_follow_http(self):
+
+        User.get_absolute_url = lambda u: "/users/%s/" % u.username
+
         self.client.login(username='lennon', password='test')
 
         follow_url = reverse('follow', args=['auth', 'user', self.hendrix.id])
         unfollow_url = reverse('follow', args=['auth', 'user', self.hendrix.id])
         toggle_url = reverse('toggle', args=['auth', 'user', self.hendrix.id])
 
-        print follow_url, unfollow_url, toggle_url
-        
         response = self.client.post(follow_url)
         self.assertEqual(302, response.status_code)
 
