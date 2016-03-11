@@ -159,7 +159,7 @@ class Status(OrderedDictModel):
     project = models.ForeignKey(Project)
     is_resolved = models.BooleanField(verbose_name=_('is resolved'), default=False)
     is_initial = models.BooleanField(verbose_name=_('is initial'), default=False)
-    destinations = models.ManyToManyField('self', verbose_name=_('destinations'), through='Transition', symmetrical=False, null=True, blank=True)
+    destinations = models.ManyToManyField('self', verbose_name=_('destinations'), through='Transition', symmetrical=False, blank=True)
     slug = AutoSlugField(max_length=64, populate_from='name', always_update=True, unique_with='project')
 
     objects = models.Manager()
@@ -256,7 +256,7 @@ class Task(TaskMixin, models.Model):
 
 
 from django.conf import settings
-from django.contrib.contenttypes import generic
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django_project.managers import CommentManager
 from django.contrib.contenttypes.models import ContentType
 
@@ -271,7 +271,7 @@ class Comment(CommentMixin, models.Model):
             verbose_name=_('content type'),
             related_name="content_type_set_for_%(class)s")
     object_pk = models.TextField(_('object ID'))
-    content_object = generic.GenericForeignKey(ct_field="content_type", fk_field="object_pk")
+    content_object = GenericForeignKey(ct_field="content_type", fk_field="object_pk")
 
     comment = models.TextField(_('comment'), max_length=COMMENT_MAX_LENGTH)
 
@@ -299,8 +299,8 @@ class ObjectTask(models.Model):
     content_type = models.ForeignKey(ContentType,
             verbose_name=_('content type'),
             related_name="content_type_set_for_%(class)s")
-    object_pk = models.TextField(_('object ID'))
-    content_object = generic.GenericForeignKey(ct_field="content_type", fk_field="object_pk")
+    object_id = models.TextField(_('object ID'))
+    content_object = GenericForeignKey()
 
     class Meta:
         verbose_name = _('objecttask')
@@ -311,7 +311,7 @@ class ObjectTask(models.Model):
 
 
 from follow import utils
-import reversion
+from reversion import revisions as reversion
 
 reversion.register(Task)
 
@@ -323,7 +323,3 @@ utils.register(Task)
 
 # IMPORTANT LINE, really leave it there!
 from django_project import handlers
-
-# This was added so as to allow South to freeze this field and create new migration
-from south.modelsinspector import add_introspection_rules
-add_introspection_rules([], ["^django_project\.models\.ChainedForeignKeyTransition"])

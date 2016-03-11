@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.translation import ugettext as _
 
-from reversion import VersionAdmin
+from reversion.admin import VersionAdmin
 
 from django_project.models import Component
 from django_project.models import Membership
@@ -24,7 +24,7 @@ class StatusAdmin(admin.ModelAdmin):
     list_editable = ( 'name', 'order', 'is_resolved', )
     list_filter = ('project',)
     #readonly_fields = ['project']
-    
+
 
 class TaskAdmin(VersionAdmin):
     list_display = ( 'project', 'milestone', 'component', 'id', 'summary',
@@ -114,6 +114,3 @@ admin.site.register(Component)
 admin.site.register(Milestone)
 
 admin.site.register(Comment)
-
-
-

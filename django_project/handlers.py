@@ -1,4 +1,4 @@
-from notifications import notify
+from notifications.signals import notify
 from follow.models import Follow
 
 from django_project import signals
