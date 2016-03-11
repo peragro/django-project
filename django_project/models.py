@@ -299,8 +299,8 @@ class ObjectTask(models.Model):
     content_type = models.ForeignKey(ContentType,
             verbose_name=_('content type'),
             related_name="content_type_set_for_%(class)s")
-    object_pk = models.TextField(_('object ID'))
-    content_object = GenericForeignKey(ct_field="content_type", fk_field="object_pk")
+    object_id = models.TextField(_('object ID'))
+    content_object = GenericForeignKey()
 
     class Meta:
         verbose_name = _('objecttask')
