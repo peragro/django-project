@@ -18,10 +18,10 @@ class CommentManager(models.Manager):
 
 
 from django.db.models.fields.related import ManyToManyField
-from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericRelation
 
 class ObjectTaskMixin(models.Model):
-    _object_tasks = GenericForeignKey('ObjectTask',
+    _object_tasks = GenericRelation('ObjectTask',
         'content_type',
         'object_pk'
     )
@@ -46,13 +46,13 @@ class ObjectTaskMixin(models.Model):
 
     def add_task(self, task):
       from django_project.models import ObjectTask
-      if self._filter(ObjectTask).filter(task=task).count() == 0:
+      if ObjectTask.objects.filter(task=task).count() == 0:
         ot = ObjectTask(task=task, content_object=self)
         ot.save()
 
     def remove_task(self, task):
       from django_project.models import ObjectTask
-      self._filter(ObjectTask).filter(task=task).delete()
+      ObjectTask.objects.filter(task=task).delete()
 
     def tasks_for_author(self, user):
       return self.tasks.filter(author=user)
