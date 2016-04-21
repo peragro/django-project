@@ -171,7 +171,7 @@ class FilteredModelViewSetMixin(object):
                     if 'queryset' in field.extra:
                         ret['filtering'][name] = {'values': [(opt.id, str(opt)) for opt in field.extra['queryset']]}
                     elif isinstance(field, DateRangeFilter):
-                        print field.options
+                        print(field.options)
                         ret['filtering'][name] = {'values': [(id, tup[0]) for id, tup in field.options.items()]}
                     else:
                         ret['filtering'][name] = {'searches': field.lookup_type}
@@ -239,7 +239,7 @@ class ProjectViewSet(NestedViewSetMixin, FilteredModelViewSetMixin, FollowingMod
     def statistics(self, request, **kwargs):
         from datetime import datetime
         qs = self.get_queryset()
-        print list(qs)
+        print(list(qs))
         ret = {}
         ret['Total'] = qs.count()
         ret['Todo'] = qs.exclude(task__status__is_resolved=True).count()
