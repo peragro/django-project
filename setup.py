@@ -1,7 +1,4 @@
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup, find_packages
 
 config = {
     'description': 'Django app for project management',
@@ -13,7 +10,7 @@ config = {
     'test_suite': 'tests.suite',
     'install_requires': [],
     'test_requires': [],
-    'packages': ['django_project', 'follow'],
+    'packages': find_packages(exclude=['example_project']),
     'scripts': [],
     'name': 'django-project',
 }
