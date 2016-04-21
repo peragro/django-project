@@ -147,7 +147,6 @@ class Priority(OrderedDictModel):
 
 class TransitionChainedForeignKeyQuerySet(models.Manager):
     def filter(self, **kwargs):
-        print 'TransitionChainedForeignKeyQuerySet', self.model, kwargs
         if 'project' in kwargs:
             kwargs['project'] = self.model.objects.get(pk=kwargs['project']).project.pk
         return super(TransitionChainedForeignKeyQuerySet, self).filter(**kwargs)
