@@ -37,6 +37,7 @@ class HyperlinkedRelatedMethod(RelatedField):
       field = SerializerMethodFieldArgs('get_related_object_url', 'field')
     """
     def __init__(self, **kwargs):
+        kwargs['read_only'] = True
         super(HyperlinkedRelatedMethod, self).__init__(**kwargs)
 
     def field_to_native(self, obj, field_name):
