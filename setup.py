@@ -13,7 +13,7 @@ config = {
     'test_suite': 'tests.suite',
     'install_requires': [],
     'test_requires': [],
-    'packages': ['django_project'],
+    'packages': ['django_project', 'follow'],
     'scripts': [],
     'name': 'django-project',
 }
