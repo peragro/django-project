@@ -146,9 +146,9 @@ class NestedViewSetMixin(RFENestedViewSetMixin):
         #TODO: validate this is a nested view when saving
         if not hasattr(obj, 'project') or not obj.project:
             if 'parent_lookup_project' in self.kwargs:
-                print '**NestedViewSetMixin:', self.kwargs, self.__class__.__name__
+                print('**NestedViewSetMixin:', self.kwargs, self.__class__.__name__)
                 project_pk = self.kwargs['parent_lookup_project']
-                print '--NestedViewSetMixin: setting project to ', project_pk
+                print('--NestedViewSetMixin: setting project to ', project_pk)
                 obj.project = models.Project.objects.get(id=int(project_pk))
 
 
