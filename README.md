@@ -8,7 +8,7 @@ Project management with tasks, milestones, follow and activity-stream
     virtualenv env
     source env/bin/activate
     cd django_project
-    pip install -r requirements
+    pip install -r requirements.txt
     python manage.py migrate --run-syncdb
     Set the superuser for django using python manage.py createsuperuser    
     python manage.py loaddata django_project/fixtures/initial_data.json
